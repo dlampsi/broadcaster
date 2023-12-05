@@ -1,0 +1,34 @@
+name: Build
+on: 
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**/README.md'
+      - LICENSE
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/README.md'
+      - LICENSE
+jobs:
+  all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.21'
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Dependencies (Go)
+        run: go mod download
+
+      - name: Preparations
+        run:  make prep
+
+      - name: Build
+        run:  make build
