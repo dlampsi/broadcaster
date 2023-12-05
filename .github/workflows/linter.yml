@@ -1,4 +1,4 @@
-name: Backend (Linter)
+name: Linter
 on:
   pull_request:
     branches:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup
         uses: actions/setup-go@v4
         with:
-          go-version: '1.20'
+          go-version: '1.21'
 
       - name: Checkout
         uses: actions/checkout@v4
