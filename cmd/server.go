@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"a0feed/cmd/config"
 	"a0feed/service"
-	"a0feed/structs"
 	"a0feed/utils/info"
 	"a0feed/utils/logging"
 	"context"
@@ -16,7 +16,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -56,6 +55,7 @@ var serverCmd = &cobra.Command{
 
 		// Root context
 		ctx, cancel := context.WithCancel(context.Background())
+		ctx = logging.ContextWithLogger(ctx, logger)
 		defer cancel()
 
 		// Listening for OS interupt signals
@@ -78,19 +78,12 @@ var serverCmd = &cobra.Command{
 		logger.Infof("Starting %s %s", info.AppName, info.Release)
 		defer logger.Info("App is stopped")
 
-		// Loading feeds configuration from file
-		var cdata struct {
-			Feeds []structs.FeedConfig `yaml:"feeds"`
-		}
-		cfile, err := os.ReadFile("config.yml")
+		// Loading feeds configuration
+		cdata, err := config.Load(ctx, rootFlags.configFile)
 		if err != nil {
 			logger.Fatal("Failed to load config file: ", err.Error())
 		}
-		err = yaml.Unmarshal(cfile, &cdata)
-		if err != nil {
-			logger.Fatal("Failed to parse config file: ", err.Error())
-		}
-		logger.Infof("Loaded '%d' feeds configuration from file", len(cdata.Feeds))
+		logger.Infof("Loaded '%d' feeds configurations", len(cdata.Feeds))
 
 		// Service
 		svc, err := service.New(
