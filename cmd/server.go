@@ -19,6 +19,30 @@ import (
 	"go.uber.org/zap"
 )
 
+type serverConfig struct {
+	Env           string         `envconfig:"ENV" default:"local"`
+	LogLevel      string         `envconfig:"LOG_LEVEL" default:"info"`
+	LogFormat     logging.Format `envconfig:"LOG_FORMAT" default:"json"`
+	ConfigPath    string         `envconfig:"CONFIG_PATH"`
+	CheckInterval int            `envconfig:"CHECK_INTERVAL" default:"300"`
+}
+
+func loadServerConfig() (*serverConfig, error) {
+	_ = godotenv.Load() // Try to read .env file first
+
+	var cfg serverConfig
+	if err := envconfig.Process(info.EnvPrefix, &cfg); err != nil {
+		return nil, fmt.Errorf("Can't load environment variables: %w", err)
+	}
+
+	// Set color logs for the local development
+	if cfg.Env == "local" && cfg.LogFormat != "pretty" {
+		cfg.LogFormat = "pretty_color"
+	}
+
+	return &cfg, nil
+}
+
 func init() {
 	rootCmd.AddCommand(serverCmd)
 }
@@ -27,25 +51,16 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Runs the server",
 	Run: func(cmd *cobra.Command, args []string) {
-		_ = godotenv.Load() // Try to read .env file first
-
-		var cfg struct {
-			Env           string `envconfig:"ENV" default:"local"`
-			LogLevel      string `envconfig:"LOG_LEVEL" default:"info"`
-			DevMode       bool   `envconfig:"DEV_MODE"`
-			ConfigPath    string `envconfig:"CONFIG_PATH"`
-			CheckInterval int    `envconfig:"CHECK_INTERVAL" default:"300"`
-		}
-		if err := envconfig.Process(info.EnvPrefix, &cfg); err != nil {
+		cfg, err := loadServerConfig()
+		if err != nil {
 			fmt.Printf("Failed to load configuration: %s\n", err.Error())
 			os.Exit(1)
 		}
-		if cfg.Env == "local" && !cfg.DevMode {
-			cfg.DevMode = true
-			_ = os.Setenv(info.EnvPrefix+"_DEV_MODE", "true")
-		}
-		logger := logging.NewLogger(cfg.LogLevel, cfg.DevMode)
-		if !cfg.DevMode {
+
+		logger := logging.NewLogger(cfg.LogLevel, cfg.LogFormat)
+		logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel))
+		// Adding env fields for non-local environments
+		if cfg.Env != "local" {
 			logger = logger.With(
 				"app", info.Namespace,
 				"env", cfg.Env,
@@ -53,7 +68,6 @@ var serverCmd = &cobra.Command{
 				"hash", info.CommitHash,
 			)
 		}
-		logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel))
 
 		// Root context
 		ctx, cancel := context.WithCancel(context.Background())
@@ -77,16 +91,17 @@ var serverCmd = &cobra.Command{
 			}
 		}()
 
-		logger.Infof("Starting %s %s", info.AppName, info.Release)
+		logger.Infof("Starting %s (%s)", info.AppName, info.Release)
 		defer logger.Info("App is stopped")
 
 		// Loading feeds configuration
-		logger.Infof("Loading feeds confguration from '%s'", cfg.ConfigPath)
+		logger.Debugf("Loading feeds confguration from '%s'", cfg.ConfigPath)
+
 		cdata, err := config.Load(ctx, cfg.ConfigPath)
 		if err != nil {
 			logger.Fatal("Failed to load config file: ", err.Error())
 		}
-		logger.Infof("Loaded '%d' feeds configurations", len(cdata.Feeds))
+		logger.Debugf("Loaded '%d' feeds configurations", len(cdata.Feeds))
 
 		// Service
 		svc, err := service.New(

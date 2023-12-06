@@ -22,8 +22,8 @@ Available environment variables for service run type:
 | ---- | ----------- | ------------- |
 | `A0FEED_ENV` | Environment name / id. | `local` |
 | `A0FEED_LOG_LEVEL` | Logging level. | `info` |
+| `A0FEED_LOG_FORMAT` | Logging format. Options: `json`, `pretty`, `pretty_color` | `json` |
 | `A0FEED_CONFIG` | Config file path in uri format.<br>Example: `file:///path/to/config.yml` | |
-| `A0FEED_DEV_MODE` | Enbale development mode. | `false` |
 | `A0FEED_TRANSLATOR_TYPE` | Translation service type. * | `google_cloud` |
 | `A0FEED_GOOGLE_CLOUD_PROJECT_ID` | Google Cloud Project ID. | |
 | `A0FEED_TELEGRAM_BOT_TOKEN` | Telegram bot token |  |

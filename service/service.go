@@ -94,8 +94,8 @@ func New(opts ...Option) (*Service, error) {
 }
 
 func (s *Service) Process(ctx context.Context) error {
-	s.logger.Info("Processing feeds data")
-	defer s.logger.Info("Processing feeds data is done")
+	s.logger.Debug("Starting feeds processing")
+	defer s.logger.Debug("Feeds processing is done")
 
 	now := time.Now().UTC()
 
@@ -112,6 +112,10 @@ func (s *Service) Process(ctx context.Context) error {
 		s.lastRun = &now
 	}()
 
+	if s.cfg.MuteNotifications {
+		s.logger.Warn("Notifications are muted")
+	}
+
 	for _, f := range s.feeds {
 		if err := s.processFeed(ctx, f); err != nil {
 			s.logger.Errorw("Failed to process feed", "err", err.Error())
@@ -122,11 +126,7 @@ func (s *Service) Process(ctx context.Context) error {
 }
 
 func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) error {
-	flogger := s.logger.With(
-		zap.String("source", feed.Source),
-		zap.String("category", feed.Category),
-		zap.String("lang", feed.Language),
-	)
+	flogger := s.logger.With("src", feed.GetId())
 
 	fp := gofeed.NewParser()
 	parsed, err := fp.ParseURLWithContext(feed.URL, ctx)
@@ -134,7 +134,7 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 		return fmt.Errorf("Failed to parse feed: %w", err)
 	}
 
-	flogger.With("title", parsed.Title).Infof("Processing feed")
+	flogger.Debugf("Processing feed: '%s'", parsed.Title)
 
 	limit := feed.ItemsLimit
 	if limit == 0 {
@@ -142,29 +142,24 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 	}
 
 	for _, fi := range parsed.Items[:limit] {
-		ilogger := flogger.With(
-			zap.String("id", fi.GUID),
-			zap.String("published", fi.Published),
-		)
+		ilogger := s.logger.With("id", fi.GUID, "link", fi.Link, "src", feed.GetId())
 
 		if pt := s.state.GetPubTime(feed, fi); pt != nil {
 			ilogger.Debug("Feed item already in state, skipping")
 			if !pt.Equal(*fi.PublishedParsed) {
-				ilogger.Warnf("State item timestamp '%s' mismatch, source '%s'", pt, fi.PublishedParsed)
+				ilogger.Debug("Item has been updated since publication")
 				continue
 			}
 			continue
 		}
 
 		if s.lastRun != nil && fi.PublishedParsed.Before(*s.lastRun) {
-			ilogger.Debug("Skipping old feed item")
+			ilogger.With("published", fi.Published).Debug("Skipping old item")
 			continue
 		}
 
-		ilogger.Debug("Translating feed item")
-
 		for _, ft := range feed.Translates {
-			tlogger := ilogger.With("to", ft.To)
+			tlogger := ilogger.With("translate", feed.Language+"."+ft.To)
 
 			resp, err := s.translator.Translate(ctx, TranlsationRequest{
 				Link: fi.Link,
@@ -178,10 +173,9 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 			}
 			resp.Source = feed.Source
 
-			tlogger.Info("Feed item translated")
+			tlogger.Info("Item has been translated")
 
 			if s.cfg.MuteNotifications {
-				tlogger.Info("Notifications are muted")
 				continue
 			}
 
