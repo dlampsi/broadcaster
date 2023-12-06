@@ -36,7 +36,7 @@ func Load(ctx context.Context, uri string) (*ConfigFile, error) {
 
 	switch parsed.Scheme {
 	case "file":
-		logger.Info("Loading config from filesytsem")
+		logger.With("path", parsed.Path).Debug("Loading from filesytsem")
 
 		cfile, err := os.ReadFile(parsed.Path)
 		if err != nil {
@@ -45,7 +45,7 @@ func Load(ctx context.Context, uri string) (*ConfigFile, error) {
 		data = cfile
 
 	case "gs":
-		logger.Info("Loading config from Google Storage")
+		logger.With("bucket", parsed.Host, "object", parsed.Path).Debug("Loading from Google Cloud Storage")
 
 		cl, err := googleStorage.NewClient(ctx)
 		if err != nil {
