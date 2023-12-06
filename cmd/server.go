@@ -32,6 +32,7 @@ var serverCmd = &cobra.Command{
 			Env           string `envconfig:"ENV" default:"local"`
 			LogLevel      string `envconfig:"LOG_LEVEL" default:"info"`
 			DevMode       bool   `envconfig:"DEV_MODE"`
+			ConfigPath    string `envconfig:"CONFIG_PATH"`
 			CheckInterval int    `envconfig:"CHECK_INTERVAL" default:"300"`
 		}
 		if err := envconfig.Process(info.EnvPrefix, &cfg); err != nil {
@@ -79,7 +80,8 @@ var serverCmd = &cobra.Command{
 		defer logger.Info("App is stopped")
 
 		// Loading feeds configuration
-		cdata, err := config.Load(ctx, rootFlags.configFile)
+		logger.Infof("Loading feeds confguration from '%s'", cfg.ConfigPath)
+		cdata, err := config.Load(ctx, cfg.ConfigPath)
 		if err != nil {
 			logger.Fatal("Failed to load config file: ", err.Error())
 		}
