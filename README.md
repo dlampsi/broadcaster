@@ -18,18 +18,18 @@ $ a0feed server
 
 Available environment variables for service run type:
 
-| Name | Description | Example | Default value |
-| ---- | ----------- | ------- | ------------- |
-| `A0FEED_ENV` | Environment name / id | `prod` | `local` |
-| `A0FEED_LOG_LEVEL` | Log level | `debug` | `info` |
-| `A0FEED_CONFIG` | Config file path | `file:///path/to/config.yml` | |
-| `A0FEED_DEV_MODE` | Development mode | `true` | `false` |
-| `A0FEED_TRANSLATOR_TYPE` | Translation service type. * | `mock` | `google_cloud` |
-| `A0FEED_GOOGLE_CLOUD_PROJECT_ID` | Google Cloud Project ID | `gc-project` | |
-| `A0FEED_TELEGRAM_BOT_TOKEN` | Telegram bot token |  |  |
-| `A0FEED_CHECK_INTERVAL` | Feeds fetch interval in seconds | `1800` | `300` |
-| `A0FEED_BACKFILL_HOURS` | How many hours back to process feeds items. | `24` | `0` |
-| `A0FEED_MUTE_NOTIFICATIONS` | Mute notifications | `true` | `false` |
+| Name | Description | Default value |
+| ---- | ----------- | ------------- |
+| `A0FEED_ENV` | Environment name / id. | `local` |
+| `A0FEED_LOG_LEVEL` | Logging level. | `info` |
+| `A0FEED_CONFIG` | Config file path in uri format.<br>Example: `file:///path/to/config.yml` | |
+| `A0FEED_DEV_MODE` | Enbale development mode. | `false` |
+| `A0FEED_TRANSLATOR_TYPE` | Translation service type. * | `google_cloud` |
+| `A0FEED_GOOGLE_CLOUD_PROJECT_ID` | Google Cloud Project ID. | |
+| `A0FEED_TELEGRAM_BOT_TOKEN` | Telegram bot token |  |
+| `A0FEED_CHECK_INTERVAL` | Feeds fetch interval in seconds | `300` |
+| `A0FEED_BACKFILL_HOURS` | How many hours back to process feeds items. | `0` |
+| `A0FEED_MUTE_NOTIFICATIONS` | Disable sent notification to destinations. | `false` |
 
 \* Google Cloud Translation service requires `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be set.
 
