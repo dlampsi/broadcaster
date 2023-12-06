@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"a0feed/cmd/config"
-	"a0feed/service"
-	"a0feed/utils/info"
-	"a0feed/utils/logging"
+	"broadcaster/cmd/config"
+	"broadcaster/service"
+	"broadcaster/utils/info"
+	"broadcaster/utils/logging"
 	"context"
 	"fmt"
 	"os"

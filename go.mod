@@ -1,4 +1,4 @@
-module a0feed
+module broadcaster
 
 go 1.21.1
 

@@ -1,7 +1,7 @@
 package restapi
 
 import (
-	"a0feed/utils/info"
+	"broadcaster/utils/info"
 	"context"
 	"fmt"
 

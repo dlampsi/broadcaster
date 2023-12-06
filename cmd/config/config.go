@@ -1,8 +1,8 @@
 package config
 
 import (
-	"a0feed/structs"
-	"a0feed/utils/logging"
+	"broadcaster/structs"
+	"broadcaster/utils/logging"
 	"context"
 	"errors"
 	"fmt"

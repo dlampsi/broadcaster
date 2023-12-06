@@ -7,8 +7,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:  "a0feed",
-	Long: `A0 Feed a news translation service`,
+	Use:  "broadcaster",
+	Long: `News feeds broadcaster service`,
 }
 
 func Execute() {

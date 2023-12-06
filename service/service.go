@@ -1,8 +1,8 @@
 package service
 
 import (
-	"a0feed/structs"
-	"a0feed/utils/info"
+	"broadcaster/structs"
+	"broadcaster/utils/info"
 	"context"
 	"fmt"
 	"time"

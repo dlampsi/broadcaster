@@ -1,6 +1,6 @@
 package main
 
-import "a0feed/cmd"
+import "broadcaster/cmd"
 
 func main() {
 	cmd.Execute()
