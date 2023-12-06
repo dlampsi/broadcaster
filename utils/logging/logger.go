@@ -12,7 +12,13 @@ import (
 // contextKey is a private string type to prevent collisions in the context map.
 type contextKey string
 
+type Format string
+
 const (
+	FormatJSON        Format = "json"
+	FormatPretty      Format = "pretty"
+	FormatPrettyColor Format = "pretty_color"
+
 	// loggerKey points to the value in the context where the logger is stored.
 	loggerKey = contextKey("logger")
 
@@ -23,50 +29,66 @@ const (
 	timeKey       = "logtime"
 )
 
-var (
-	devEncoderConfig = zapcore.EncoderConfig{
-		NameKey:        nameKey,
-		MessageKey:     messageKey,
-		StacktraceKey:  stacktraceKey,
-		LevelKey:       levelKey,
-		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
-		TimeKey:        timeKey,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.SecondsDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-		LineEnding:     zapcore.DefaultLineEnding,
-	}
-	prodEncoderConfig = zapcore.EncoderConfig{
-		NameKey:        nameKey,
-		MessageKey:     messageKey,
-		StacktraceKey:  stacktraceKey,
-		LevelKey:       levelKey,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
-		TimeKey:        timeKey,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-		LineEnding:     zapcore.DefaultLineEnding,
-	}
-)
-
-func NewLogger(level string, development bool) *zap.SugaredLogger {
+func NewLogger(level string, format Format) *zap.SugaredLogger {
 	var config *zap.Config
 
-	if development {
+	switch format {
+	case FormatPrettyColor:
 		config = &zap.Config{
-			Level:            zap.NewAtomicLevelAt(toZapLevel(level)),
-			Development:      true,
-			Encoding:         "console",
-			EncoderConfig:    devEncoderConfig,
+			Level:       zap.NewAtomicLevelAt(toZapLevel(level)),
+			Development: true,
+			Encoding:    "console",
+			EncoderConfig: zapcore.EncoderConfig{
+				NameKey:        nameKey,
+				MessageKey:     messageKey,
+				StacktraceKey:  stacktraceKey,
+				LevelKey:       levelKey,
+				EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+				TimeKey:        timeKey,
+				EncodeTime:     zapcore.ISO8601TimeEncoder,
+				EncodeDuration: zapcore.SecondsDurationEncoder,
+				EncodeCaller:   zapcore.ShortCallerEncoder,
+				LineEnding:     zapcore.DefaultLineEnding,
+			},
 			OutputPaths:      []string{"stdout"},
 			ErrorOutputPaths: []string{"stderr"},
 		}
-	} else {
+	case FormatPretty:
 		config = &zap.Config{
-			Level:            zap.NewAtomicLevelAt(toZapLevel(level)),
-			Encoding:         "json",
-			EncoderConfig:    prodEncoderConfig,
+			Level:       zap.NewAtomicLevelAt(toZapLevel(level)),
+			Development: true,
+			Encoding:    "console",
+			EncoderConfig: zapcore.EncoderConfig{
+				NameKey:        nameKey,
+				MessageKey:     messageKey,
+				StacktraceKey:  stacktraceKey,
+				LevelKey:       levelKey,
+				EncodeLevel:    zapcore.CapitalLevelEncoder,
+				TimeKey:        timeKey,
+				EncodeTime:     zapcore.ISO8601TimeEncoder,
+				EncodeDuration: zapcore.SecondsDurationEncoder,
+				EncodeCaller:   zapcore.ShortCallerEncoder,
+				LineEnding:     zapcore.DefaultLineEnding,
+			},
+			OutputPaths:      []string{"stdout"},
+			ErrorOutputPaths: []string{"stderr"},
+		}
+	default:
+		config = &zap.Config{
+			Level:    zap.NewAtomicLevelAt(toZapLevel(level)),
+			Encoding: "json",
+			EncoderConfig: zapcore.EncoderConfig{
+				NameKey:        nameKey,
+				MessageKey:     messageKey,
+				StacktraceKey:  stacktraceKey,
+				LevelKey:       levelKey,
+				EncodeLevel:    zapcore.CapitalLevelEncoder,
+				TimeKey:        timeKey,
+				EncodeTime:     zapcore.ISO8601TimeEncoder,
+				EncodeDuration: zapcore.StringDurationEncoder,
+				EncodeCaller:   zapcore.ShortCallerEncoder,
+				LineEnding:     zapcore.DefaultLineEnding,
+			},
 			OutputPaths:      []string{"stdout"},
 			ErrorOutputPaths: []string{"stderr"},
 		}
