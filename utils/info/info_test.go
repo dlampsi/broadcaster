@@ -14,7 +14,7 @@ func Test_ForPrint(t *testing.T) {
 	CommitHash = ""
 
 	raw := Print("\n")
-	require.Equal(t, "broadcaster 0.0.0", raw)
+	require.Equal(t, "Broadcaster 0.0.0", raw)
 
 	CommitHash = "fakeone"
 	withCommit := Print("\n")
