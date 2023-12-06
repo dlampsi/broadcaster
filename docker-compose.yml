@@ -1,0 +1,10 @@
+version: '3.7'
+
+services:
+  app:
+    container_name: a0feed
+    hostname: a0feed
+    build:
+      context: .
+    env_file: .env
+    command: job

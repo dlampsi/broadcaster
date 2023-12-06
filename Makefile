@@ -59,8 +59,10 @@ build: clean ## Build binary
 		-o $(BIN_DIR)/$(BINARY)
 	@chmod +x $(BIN_DIR)/$(BINARY)
 
-serve:
+server: ## Run application as a server
 	@echo "$(BLUE)• Running application$(NC)"
 	@$(BIN_DIR)/$(BINARY) server
 
-buildandrun: build run
+job: ## Run application as a one-time job
+	@echo "$(BLUE)• Running application$(NC)"
+	@$(BIN_DIR)/$(BINARY) job
