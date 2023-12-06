@@ -122,7 +122,11 @@ func (s *Service) Process(ctx context.Context) error {
 }
 
 func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) error {
-	flogger := s.logger.With(zap.String("source", feed.Source+" | "+feed.Category))
+	flogger := s.logger.With(
+		zap.String("source", feed.Source),
+		zap.String("category", feed.Category),
+		zap.String("lang", feed.Language),
+	)
 
 	fp := gofeed.NewParser()
 	parsed, err := fp.ParseURLWithContext(feed.URL, ctx)
@@ -140,7 +144,6 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 	for _, fi := range parsed.Items[:limit] {
 		ilogger := flogger.With(
 			zap.String("id", fi.GUID),
-			zap.String("url", fi.Link),
 			zap.String("published", fi.Published),
 		)
 
@@ -161,11 +164,11 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 		ilogger.Debug("Translating feed item")
 
 		for _, ft := range feed.Translates {
-			tlogger := ilogger.With("transate", fmt.Sprintf("%s > %s", ft.From, ft.To))
+			tlogger := ilogger.With("to", ft.To)
 
 			resp, err := s.translator.Translate(ctx, TranlsationRequest{
 				Link: fi.Link,
-				From: ft.From,
+				From: feed.Language,
 				To:   ft.To,
 				Text: []string{fi.Title, fi.Description},
 			})

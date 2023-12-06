@@ -18,9 +18,9 @@ feeds:
   - source: News portal
     category: Latest
     url: https://dummyfeed.com/rss
+    language: fi
     translates:
-      - from: fi
-        to: en
+      - to: en
         notify:
           - type: telegram
             chat_id: <telegram_chat_id>
