@@ -8,12 +8,12 @@ type FeedConfig struct {
 	Source     string                `yaml:"source"`
 	Category   string                `yaml:"category"`
 	URL        string                `yaml:"url"`
+	Language   string                `yaml:"language"`
 	ItemsLimit int                   `yaml:"items_limit"`
 	Translates []FeedTranslateConfig `yaml:"translates"`
 }
 
 type FeedTranslateConfig struct {
-	From   string                      `yaml:"from"`
 	To     string                      `yaml:"to"`
 	Notify []FeedTranslateNotifyConfig `yaml:"notify"`
 }
