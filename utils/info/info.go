@@ -1,11 +1,10 @@
 // Package info is keeping data for app versions attributes and namespaces.
 package info
 
-import "strings"
-
 const (
-	AppName   = "a0feed"
-	Namespace = "a0feed"
+	AppName   = "Broadcaster"
+	Namespace = "broadcaster"
+	EnvPrefix = "bctr"
 )
 
 var (
@@ -13,7 +12,6 @@ var (
 	BuildNumber string
 	BuildTime   string
 	CommitHash  string
-	EnvPrefix   = strings.ToUpper(Namespace)
 )
 
 func Print(sep string) string {

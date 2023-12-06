@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"a0feed/utils/info"
+	"broadcaster/utils/info"
 	"fmt"
 
 	"github.com/spf13/cobra"

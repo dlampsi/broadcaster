@@ -1,7 +1,7 @@
 package service
 
 import (
-	"a0feed/structs"
+	"broadcaster/structs"
 	"context"
 )
 

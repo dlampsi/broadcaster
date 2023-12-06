@@ -1,7 +1,7 @@
 package restapi
 
 import (
-	"a0feed/utils/info"
+	"broadcaster/utils/info"
 	"net/http"
 
 	"github.com/gin-contrib/pprof"

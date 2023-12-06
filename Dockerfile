@@ -11,10 +11,10 @@ RUN apk add --no-cache make git && make build
 # --------------------------------------------------
 FROM alpine:3.14
 
-COPY --from=builder /app/bin/a0feed /app/
-RUN chmod +x /app/a0feed
+COPY --from=builder /app/bin/broadcaster /app/
+RUN chmod +x /app/broadcaster
 
 WORKDIR /app
 
-ENTRYPOINT [ "./a0feed" ]
+ENTRYPOINT [ "./broadcaster" ]
 CMD ["server"]

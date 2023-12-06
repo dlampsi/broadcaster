@@ -2,8 +2,8 @@ version: '3.7'
 
 services:
   app:
-    container_name: a0feed
-    hostname: a0feed
+    container_name: broadcaster
+    hostname: broadcaster
     build:
       context: .
     env_file: .env

@@ -4,7 +4,7 @@ NC    :=\033[0m
 BLUE  :=\033[36m
 GREEN :=\033[0;32m
 
-APP       := a0feed
+APP       := broadcaster
 BINARY    ?= $(APP)
 # BINARY    ?= $(APP)-$(RELEASE)_$(GOARCH)_$(GOOS)
 RELEASE   ?= $(shell git rev-parse --short HEAD)
