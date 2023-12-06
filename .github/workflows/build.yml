@@ -21,16 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup GC SDK
+        uses: google-github-actions/setup-gcloud@v1
+
       - name: Auth in GC
+        if: github.event_name != 'pull_request'
         id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: "${{ secrets.GC_SERVICE_ACCOUNT }}"
 
-      - name: Setup GC SDK
-        uses: google-github-actions/setup-gcloud@v1
-
       - name: Docker auth
+        if: github.event_name != 'pull_request'
         run: |
           gcloud info
           gcloud auth configure-docker ${{ vars.GC_REGION }}-docker.pkg.dev --quiet
