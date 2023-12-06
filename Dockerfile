@@ -16,4 +16,4 @@ RUN chmod +x /app/a0feed
 
 WORKDIR /app
 
-CMD ["a0feed"]
+CMD ["./a0feed", "server"]
