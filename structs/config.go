@@ -12,6 +12,7 @@ type FeedConfig struct {
 	URL        string                `yaml:"url"`
 	Language   string                `yaml:"language"`
 	ItemsLimit int                   `yaml:"items_limit"`
+	Notify     []FeedNotifyConfig    `yaml:"notify"`
 	Translates []FeedTranslateConfig `yaml:"translates"`
 }
 
@@ -20,16 +21,15 @@ func (f FeedConfig) GetId() string {
 }
 
 type FeedTranslateConfig struct {
-	To     string                      `yaml:"to"`
-	Notify []FeedTranslateNotifyConfig `yaml:"notify"`
+	To string `yaml:"to"`
 }
 
-type FeedTranslateNotifyConfig struct {
+type FeedNotifyConfig struct {
 	Type   string `yaml:"type"`
 	ChatId int64  `yaml:"chat_id"`
 }
 
-type TranslatedFeedItem struct {
+type FeedItem struct {
 	Title       string
 	Description string
 	Link        string

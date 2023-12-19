@@ -23,5 +23,5 @@ bin
 # Local .env file
 .env
 
-/config.yml
+/config*.yml
 /*.json

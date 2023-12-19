@@ -6,7 +6,7 @@ import (
 )
 
 type Translator interface {
-	Translate(ctx context.Context, r TranlsationRequest) (*structs.TranslatedFeedItem, error)
+	Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error)
 }
 
 type TranlsationRequest struct {

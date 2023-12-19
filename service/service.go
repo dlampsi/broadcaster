@@ -133,39 +133,56 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 	if err != nil {
 		return fmt.Errorf("Failed to parse feed: %w", err)
 	}
-
-	flogger.Debugf("Processing feed: '%s'", parsed.Title)
+	flogger.Debugf("Feed '%s' successfully parsed", parsed.Title)
 
 	limit := feed.ItemsLimit
 	if limit == 0 {
 		limit = 5
 	}
 
-	for _, fi := range parsed.Items[:limit] {
-		ilogger := s.logger.With("id", fi.GUID, "link", fi.Link, "src", feed.GetId())
+	var items []*structs.FeedItem
 
-		if pt := s.state.GetPubTime(feed, fi); pt != nil {
+	for _, item := range parsed.Items[:limit] {
+		ilogger := s.logger.With("id", item.GUID, "link", item.Link, "src", feed.GetId())
+
+		if pt := s.state.GetPubTime(feed, item); pt != nil {
 			ilogger.Debug("Feed item already in state, skipping")
-			if !pt.Equal(*fi.PublishedParsed) {
+			if !pt.Equal(*item.PublishedParsed) {
 				ilogger.Debug("Item has been updated since publication")
 				continue
 			}
 			continue
 		}
 
-		if s.lastRun != nil && fi.PublishedParsed.Before(*s.lastRun) {
-			ilogger.With("published", fi.Published).Debug("Skipping old item")
+		if s.lastRun != nil && item.PublishedParsed.Before(*s.lastRun) {
+			ilogger.With("published", item.Published).Debug("Skipping old item")
 			continue
 		}
 
-		for _, ft := range feed.Translates {
-			tlogger := ilogger.With("translate", feed.Language+"."+ft.To)
+		/*
+			Adding a raw feed data if no translations are required
+			otherwise add translated data for each language
+		*/
+		if len(feed.Translates) == 0 {
+			items = append(items, &structs.FeedItem{
+				Title:       item.Title,
+				Description: item.Description,
+				Link:        item.Link,
+				Source:      feed.Source,
+			})
+			s.state.Set(feed, item)
+			ilogger.Info("Item has no translations, added as is")
+			continue
+		}
+
+		for _, translate := range feed.Translates {
+			tlogger := ilogger.With("translate", feed.Language+"."+translate.To)
 
 			resp, err := s.translator.Translate(ctx, TranlsationRequest{
-				Link: fi.Link,
+				Link: item.Link,
 				From: feed.Language,
-				To:   ft.To,
-				Text: []string{fi.Title, fi.Description},
+				To:   translate.To,
+				Text: []string{item.Title, item.Description},
 			})
 			if err != nil {
 				tlogger.Errorw("Failed to translate item text", "err", err.Error())
@@ -175,24 +192,24 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 
 			tlogger.Info("Item has been translated")
 
-			if s.cfg.MuteNotifications {
-				continue
-			}
-
-			for _, fn := range ft.Notify {
-				if err := s.notify(ctx, fn, resp); err != nil {
-					tlogger.With("err", err.Error()).Errorf("Failed to notify with '%s'", fn.Type)
-				}
-			}
+			items = append(items, resp)
 		}
 
-		s.state.Set(feed, fi)
+		s.state.Set(feed, item)
+	}
+
+	for _, notify := range feed.Notify {
+		for _, item := range items {
+			if err := s.notify(ctx, notify, item); err != nil {
+				flogger.With("err", err.Error()).Errorf("Failed to notify with '%s'", notify.Type)
+			}
+		}
 	}
 
 	return nil
 }
 
-func (s *Service) notify(ctx context.Context, cfg structs.FeedTranslateNotifyConfig, item *structs.TranslatedFeedItem) error {
+func (s *Service) notify(ctx context.Context, cfg structs.FeedNotifyConfig, item *structs.FeedItem) error {
 	switch cfg.Type {
 	case "telegram":
 		msg := tgbotapi.NewMessage(
