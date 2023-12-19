@@ -15,8 +15,8 @@ func NewMockTranslator() *MockTranslator {
 	return &MockTranslator{}
 }
 
-func (t *MockTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.TranslatedFeedItem, error) {
-	return &structs.TranslatedFeedItem{
+func (t *MockTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error) {
+	return &structs.FeedItem{
 		Title:       r.Text[0],
 		Description: r.Text[1],
 		Link:        r.Link,

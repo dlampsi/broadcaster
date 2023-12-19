@@ -22,7 +22,7 @@ func NewGoogleCloudTranslator(projectId string) *GoogleCloudTranslator {
 	}
 }
 
-func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.TranslatedFeedItem, error) {
+func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error) {
 	cl, err := googleTranslate.NewTranslationClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create google translate client: %w", err)
@@ -47,7 +47,7 @@ func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequ
 		result = append(result, t.GetTranslatedText())
 	}
 
-	item := &structs.TranslatedFeedItem{
+	item := &structs.FeedItem{
 		Title:       result[0],
 		Description: result[1],
 		Link: fmt.Sprintf(

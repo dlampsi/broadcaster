@@ -2,7 +2,7 @@
 
 [![Image](https://github.com/dlampsi/broadcaster/actions/workflows/image.yml/badge.svg)](https://github.com/dlampsi/broadcaster/actions/workflows/image.yml)
 
-A0 Feed is a news translation service or application that processes RSS feed items, translates and sends them to customized destinations (eg Telegam).
+A service that processes RSS feed items (optionally translates) and sends them to customized destinations (eg Telegam).
 
 ## Usage
 
@@ -48,9 +48,9 @@ feeds:
     category: Latest
     url: https://dummyfeed.com/rss
     language: fi
+    notify:
+      - type: telegram
+        chat_id: <telegram_chat_id>
     translates:
       - to: en
-        notify:
-          - type: telegram
-            chat_id: <telegram_chat_id>
 ```
