@@ -17,9 +17,9 @@ type TelegramNotifier struct {
 	logger *zap.SugaredLogger
 }
 
-func NewTelegramNotifier(botToken string) (*TelegramNotifier, error) {
+func NewTelegramNotifier(botToken string, logger *zap.SugaredLogger) (*TelegramNotifier, error) {
 	t := &TelegramNotifier{
-		logger: zap.NewNop().Sugar(),
+		logger: logger.Named("telegram"),
 	}
 
 	tgbot, err := tgbotapi.NewBotAPI(botToken)
@@ -36,7 +36,7 @@ func (t *TelegramNotifier) Notify(ctx context.Context, r NotificationRequest) er
 		chatId, err := strconv.ParseInt(to, 10, 64)
 		if err == nil {
 			if err := t.notify(ctx, chatId, r.Message); err != nil {
-				return err
+				t.logger.With("err", err.Error()).Errorf("Failed to notify Telegram to '%s'", to)
 			}
 		}
 	}

@@ -7,6 +7,7 @@ type Notifier interface {
 }
 
 type NotificationRequest struct {
+	Source  string
 	To      []string
 	Message string
 }

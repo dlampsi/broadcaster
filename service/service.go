@@ -5,6 +5,7 @@ import (
 	"broadcaster/utils/info"
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -84,12 +85,19 @@ func New(opts ...Option) (*Service, error) {
 		return nil, fmt.Errorf("Unsupported translator type '%s'", s.cfg.TranslatorType)
 	}
 
-	tn, err := NewTelegramNotifier(cfg.TelegramBotToken)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to init a telegram notifier: %w", err)
+	if cfg.TelegramBotToken != "" {
+		s.logger.Debug("Loading Telegram notifier")
+		tn, err := NewTelegramNotifier(cfg.TelegramBotToken, s.logger)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to init a telegram notifier: %w", err)
+		}
+		s.notifiers["telegram"] = tn
 	}
-	s.notifiers["telegram"] = tn
 
+	if cfg.SlackApiToken != "" {
+		s.logger.Debug("Loading Slack notifier")
+		s.notifiers["slack"] = NewSlackNotifier(cfg.SlackApiToken, s.logger)
+	}
 	return s, nil
 }
 
@@ -198,13 +206,31 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 		s.state.Set(feed, item)
 	}
 
-	for _, notify := range feed.Notify {
-		for _, item := range items {
-			if err := s.notify(ctx, notify, item); err != nil {
-				flogger.With("err", err.Error()).Errorf("Failed to notify with '%s'", notify.Type)
-			}
+	var wg sync.WaitGroup
+
+	for _, nc := range feed.Notify {
+		if _, ok := s.notifiers[nc.Type]; !ok {
+			flogger.Warnf(
+				"Notifier '%s' isn't configured. You may not have specified a notification token env.",
+				nc.Type,
+			)
+			continue
 		}
+
+		wg.Add(1)
+
+		go func(c structs.FeedNotifyConfig) {
+			defer wg.Done()
+
+			for _, fi := range items {
+				if err := s.notify(ctx, c, fi); err != nil {
+					flogger.With("err", err.Error()).Errorf("Failed to notify with '%s'", c.Type)
+				}
+			}
+		}(nc)
 	}
+
+	wg.Wait()
 
 	return nil
 }
@@ -227,6 +253,19 @@ func (s *Service) notify(ctx context.Context, cfg structs.FeedNotifyConfig, item
 				item.Description,
 				item.Source,
 				item.Link,
+			),
+		}
+	case "slack":
+		notifier = s.notifiers["slack"]
+
+		request = NotificationRequest{
+			To:     cfg.To,
+			Source: item.Source,
+			Message: fmt.Sprintf(
+				"<%s|%s>\n\n%s",
+				item.Link,
+				item.Title,
+				item.Description,
 			),
 		}
 	default:

@@ -26,10 +26,11 @@ Available environment variables for service run type:
 | `BCTR_CONFIG` | Config file path in uri format.<br>Example: `file:///path/to/config.yml` | |
 | `BCTR_TRANSLATOR_TYPE` | Translation service type. * | `google_cloud` |
 | `BCTR_GOOGLE_CLOUD_PROJECT_ID` | Google Cloud Project ID. | |
-| `BCTR_TELEGRAM_BOT_TOKEN` | Telegram bot token |  |
 | `BCTR_CHECK_INTERVAL` | Feeds fetch interval in seconds | `300` |
 | `BCTR_BACKFILL_HOURS` | How many hours back to process feeds items. | `0` |
 | `BCTR_MUTE_NOTIFICATIONS` | Disable sent notification to destinations. | `false` |
+| `BCTR_TELEGRAM_BOT_TOKEN` | Telegram bot token. |  |
+| `BCTR_SLACK_API_TOKEN` | Slack bot API token. |  |
 
 \* Google Cloud Translation service requires `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be set.
 
@@ -51,6 +52,14 @@ feeds:
     notify:
       - type: telegram
         to: ["-1234567890","-1234567891"]
+      - type: slack
+        to: ["#general"]
     translates:
       - to: en
 ```
+
+## Notifiers
+
+Broadcaster supports the following notifiers: `telegram`, `slack`.
+
+To enable a notifier you should specify [corresponding](#environment-variables) TOKEN variable and add config to the `notify` section of the feed configuration.
