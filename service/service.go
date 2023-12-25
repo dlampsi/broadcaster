@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/mmcdole/gofeed"
 	"go.uber.org/zap"
@@ -18,7 +17,7 @@ type Service struct {
 	translator Translator
 	feeds      []structs.FeedConfig
 	logger     *zap.SugaredLogger
-	tgbot      *tgbotapi.BotAPI
+	notifiers  map[string]Notifier
 	lastRun    *time.Time // Timestamp of the last run in UTC
 	state      *State
 }
@@ -62,9 +61,10 @@ func New(opts ...Option) (*Service, error) {
 	}
 
 	s := &Service{
-		cfg:    &cfg,
-		logger: zap.NewNop().Sugar(),
-		state:  NewState(),
+		cfg:       &cfg,
+		logger:    zap.NewNop().Sugar(),
+		state:     NewState(),
+		notifiers: map[string]Notifier{},
 	}
 
 	for _, opt := range opts {
@@ -84,11 +84,11 @@ func New(opts ...Option) (*Service, error) {
 		return nil, fmt.Errorf("Unsupported translator type '%s'", s.cfg.TranslatorType)
 	}
 
-	tgbot, err := tgbotapi.NewBotAPI(s.cfg.TelegramBotToken)
+	tn, err := NewTelegramNotifier(cfg.TelegramBotToken)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to init a telegram client: %w", err)
+		return nil, fmt.Errorf("Failed to init a telegram notifier: %w", err)
 	}
-	s.tgbot = tgbot
+	s.notifiers["telegram"] = tn
 
 	return s, nil
 }
@@ -210,26 +210,28 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 }
 
 func (s *Service) notify(ctx context.Context, cfg structs.FeedNotifyConfig, item *structs.FeedItem) error {
+	var (
+		notifier Notifier
+		request  NotificationRequest
+	)
+
 	switch cfg.Type {
 	case "telegram":
-		msg := tgbotapi.NewMessage(
-			cfg.ChatId,
-			fmt.Sprintf(
+		notifier = s.notifiers["telegram"]
+
+		request = NotificationRequest{
+			To: []string{fmt.Sprintf("%d", cfg.ChatId)},
+			Message: fmt.Sprintf(
 				"*%s* \n\n%s\n\n[%s](%s)",
 				item.Title,
 				item.Description,
 				item.Source,
 				item.Link,
 			),
-		)
-		msg.ParseMode = "markdown"
-		msg.DisableWebPagePreview = false
-
-		if _, err := s.tgbot.Send(msg); err != nil {
-			return err
 		}
 	default:
 		return fmt.Errorf("Unsupported notification type '%s'", cfg.Type)
 	}
-	return nil
+
+	return notifier.Notify(ctx, request)
 }
