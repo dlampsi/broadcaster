@@ -13,6 +13,7 @@ type Config struct {
 	TranslatorType       TranslationType `envconfig:"TRANSLATOR_TYPE" default:"google_cloud"`
 	GoogleCloudProjectId string          `envconfig:"GOOGLE_CLOUD_PROJECT_ID"`
 	TelegramBotToken     string          `envconfig:"TELEGRAM_BOT_TOKEN"`
+	SlackApiToken        string          `envconfig:"SLACK_API_TOKEN"`
 	// How many hours back to process
 	BackfillHours int `envconfig:"BACKFILL_HOURS"`
 	// Do not send notifications
