@@ -220,7 +220,7 @@ func (s *Service) notify(ctx context.Context, cfg structs.FeedNotifyConfig, item
 		notifier = s.notifiers["telegram"]
 
 		request = NotificationRequest{
-			To: []string{fmt.Sprintf("%d", cfg.ChatId)},
+			To: cfg.To,
 			Message: fmt.Sprintf(
 				"*%s* \n\n%s\n\n[%s](%s)",
 				item.Title,

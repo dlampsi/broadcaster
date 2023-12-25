@@ -50,7 +50,7 @@ feeds:
     language: fi
     notify:
       - type: telegram
-        chat_id: <telegram_chat_id>
+        to: ["-1234567890","-1234567891"]
     translates:
       - to: en
 ```

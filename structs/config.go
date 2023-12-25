@@ -25,8 +25,8 @@ type FeedTranslateConfig struct {
 }
 
 type FeedNotifyConfig struct {
-	Type   string `yaml:"type"`
-	ChatId int64  `yaml:"chat_id"`
+	Type string   `yaml:"type"`
+	To   []string `yaml:"to"`
 }
 
 type FeedItem struct {
