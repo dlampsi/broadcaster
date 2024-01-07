@@ -80,7 +80,14 @@ func New(opts ...Option) (*Service, error) {
 	case "mock", "raw":
 		s.translator = NewMockTranslator()
 	case "google_cloud":
-		s.translator = NewGoogleCloudTranslator(s.cfg.GoogleCloudProjectId)
+		cfg := &GoogleCloudTranslatorConfig{
+			ProjectId: s.cfg.GoogleCloudProjectId,
+		}
+		if s.cfg.GoogleCloudCreds != "" {
+			s.logger.Debug("Using Google Cloud credentials from env")
+			cfg.CredsJson = []byte(s.cfg.GoogleCloudCreds)
+		}
+		s.translator = NewGoogleCloudTranslator(cfg)
 	default:
 		return nil, fmt.Errorf("Unsupported translator type '%s'", s.cfg.TranslatorType)
 	}
