@@ -16,11 +16,13 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/mmcdole/gofeed v1.2.1
 	github.com/slack-go/slack v0.12.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
+	google.golang.org/api v0.149.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -30,8 +32,8 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v1.1.3 // indirect
 	cloud.google.com/go/longrunning v0.5.2 // indirect
-	github.com/PuerkitoBio/goquery v1.8.0 // indirect
-	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/PuerkitoBio/goquery v1.8.1 // indirect
+	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.5.4 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.10 // indirect
@@ -46,6 +48,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.21.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7 // indirect
 	github.com/aws/smithy-go v1.19.0 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bytedance/sonic v1.10.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
@@ -62,6 +65,7 @@ require (
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -86,7 +90,6 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	google.golang.org/api v0.149.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
 	"go.uber.org/zap"
 )
@@ -254,12 +255,14 @@ func (s *Service) notify(ctx context.Context, cfg structs.FeedNotifyConfig, item
 	case "telegram":
 		notifier = s.notifiers["telegram"]
 
+		p := bluemonday.StrictPolicy()
+
 		request = NotificationRequest{
 			To: cfg.To,
 			Message: fmt.Sprintf(
 				"*%s* \n\n%s\n\n[%s](%s)",
 				item.Title,
-				item.Description,
+				p.Sanitize(item.Description),
 				item.Source,
 				item.Link,
 			),

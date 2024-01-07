@@ -37,6 +37,7 @@ func (t *TelegramNotifier) Notify(ctx context.Context, r NotificationRequest) er
 		if err == nil {
 			if err := t.notify(ctx, chatId, r.Message); err != nil {
 				t.logger.With("err", err.Error()).Errorf("Failed to notify Telegram to '%s'", to)
+				t.logger.Debug(r.Message)
 			}
 		}
 	}
