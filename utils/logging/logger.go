@@ -99,8 +99,8 @@ func NewLogger(level string, format Format) *zap.SugaredLogger {
 		logger = zap.NewNop()
 	}
 
-	// Output stacktracess at the levels above the warning
-	logger = logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel))
+	// Output stacktracess at the levels above the error
+	logger = logger.WithOptions(zap.AddStacktrace(zap.FatalLevel))
 
 	return logger.Sugar()
 }
