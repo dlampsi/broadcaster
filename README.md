@@ -26,19 +26,32 @@ Available environment variables for service run type:
 | `BCTR_CONFIG` | Config file path in uri format.<br>Example: `file:///path/to/config.yml` | |
 | `BCTR_TRANSLATOR_TYPE` | Translation service type. * | `google_cloud` |
 | `BCTR_GOOGLE_CLOUD_PROJECT_ID` | Google Cloud Project ID. | |
+| `BCTR_GOOGLE_CLOUD_CREDS` | Google Cloud [application credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc) string. Basically it should be conten of the credentials json file. <br> You can use `GOOGLE_APPLICATION_CREDENTIALS` env to specify path to credentials file.| |
 | `BCTR_CHECK_INTERVAL` | Feeds fetch interval in seconds | `300` |
 | `BCTR_BACKFILL_HOURS` | How many hours back to process feeds items. | `0` |
 | `BCTR_MUTE_NOTIFICATIONS` | Disable sent notification to destinations. | `false` |
 | `BCTR_TELEGRAM_BOT_TOKEN` | Telegram bot token. |  |
 | `BCTR_SLACK_API_TOKEN` | Slack bot API token. |  |
 
-\* Google Cloud Translation service requires `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be set.
+\* Google Cloud Translation service requires `BCTR_GOOGLE_CLOUD_CREDS` or `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be set.
 
 ## Feeds configuration
 
-Application uses config config file as a feeds configuration source. File can be loaded from local filesystem or Google Cloud Storage.
+Application uses config config file as a feeds configuration source. File can be loaded from different sources and should be in URI format. 
 
-File path should be specified in the URL format, eg `file:///path/to/config.yml` or `gs://bucket/path/to/config.yml`. <br>
+Supported sources and formats:
+
+```bash
+# Local filesystem
+BCTR_CONFIG="file:///path/to/config.yml"
+# Google Cloud Storage
+BCTR_CONFIG="gs://bucket/path/to/config.yml"
+# DigitalOcean Spaces *
+BCTR_CONFIG="do://bucket/path/to/config.yml"
+```
+
+\* DigitalOcean Spaces and Google Cloud Storage sources require `DO_SPACES_REGION`, `DO_SPACES_ACCESS_KEY_ID` and `DO_SPACES_SECRET_ACCESS_KEY` environment variable to be set.
+
 If config file is not specified, application will try to use `config.yml` file in the current directory.
 
 Config file is a YAML file with the following structure:

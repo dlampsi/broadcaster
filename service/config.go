@@ -17,7 +17,8 @@ type Config struct {
 	// How many hours back to process
 	BackfillHours int `envconfig:"BACKFILL_HOURS"`
 	// Do not send notifications
-	MuteNotifications bool `envconfig:"MUTE_NOTIFICATIONS"`
+	MuteNotifications bool   `envconfig:"MUTE_NOTIFICATIONS"`
+	GoogleCloudCreds  string `envconfig:"GOOGLE_CLOUD_CREDS"`
 }
 
 func (c *Config) Validate() error {

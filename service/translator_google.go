@@ -7,30 +7,42 @@ import (
 
 	googleTranslate "cloud.google.com/go/translate/apiv3"
 	googleTranslatePb "cloud.google.com/go/translate/apiv3/translatepb"
+	googleOption "google.golang.org/api/option"
 )
 
 // Validates interface compliance
 var _ Translator = (*GoogleCloudTranslator)(nil)
 
-type GoogleCloudTranslator struct {
-	projectId string
+type GoogleCloudTranslatorConfig struct {
+	ProjectId string
+	CredsJson []byte // Optional credentials in JSON format
 }
 
-func NewGoogleCloudTranslator(projectId string) *GoogleCloudTranslator {
+type GoogleCloudTranslator struct {
+	cfg *GoogleCloudTranslatorConfig
+}
+
+func NewGoogleCloudTranslator(cfg *GoogleCloudTranslatorConfig) *GoogleCloudTranslator {
 	return &GoogleCloudTranslator{
-		projectId: projectId,
+		cfg: cfg,
 	}
 }
 
 func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error) {
-	cl, err := googleTranslate.NewTranslationClient(ctx)
+	var clOpts []googleOption.ClientOption
+
+	if len(t.cfg.CredsJson) > 0 {
+		clOpts = append(clOpts, googleOption.WithCredentialsJSON([]byte(t.cfg.CredsJson)))
+	}
+
+	cl, err := googleTranslate.NewTranslationClient(ctx, clOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create google translate client: %w", err)
 	}
 	defer cl.Close()
 
 	config := &googleTranslatePb.TranslateTextRequest{
-		Parent:             "projects/" + t.projectId + "/locations/global",
+		Parent:             "projects/" + t.cfg.ProjectId + "/locations/global",
 		SourceLanguageCode: r.From,
 		TargetLanguageCode: r.To,
 		MimeType:           "text/plain",
