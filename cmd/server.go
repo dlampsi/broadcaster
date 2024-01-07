@@ -126,6 +126,9 @@ var serverCmd = &cobra.Command{
 					if err := svc.Process(ctx); err != nil {
 						logger.Error("Failed to process data: ", err.Error())
 					}
+					if err := svc.CleanupState(ctx); err != nil {
+						logger.Error("Failed to cleanup state: ", err.Error())
+					}
 				case <-ctx.Done():
 					logger.Info("Stopping application")
 					ticker.Stop()

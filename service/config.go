@@ -19,6 +19,7 @@ type Config struct {
 	// Do not send notifications
 	MuteNotifications bool   `envconfig:"MUTE_NOTIFICATIONS"`
 	GoogleCloudCreds  string `envconfig:"GOOGLE_CLOUD_CREDS"`
+	StateTTL          int    `envconfig:"STATE_TTL" default:"86400"`
 }
 
 func (c *Config) Validate() error {

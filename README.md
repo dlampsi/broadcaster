@@ -32,6 +32,7 @@ Available environment variables for service run type:
 | `BCTR_MUTE_NOTIFICATIONS` | Disable sent notification to destinations. | `false` |
 | `BCTR_TELEGRAM_BOT_TOKEN` | Telegram bot token. |  |
 | `BCTR_SLACK_API_TOKEN` | Slack bot API token. |  |
+| `BCTR_STATE_TTL` | Application state TTL in seconds. | `86400` |
 
 \* Google Cloud Translation service requires `BCTR_GOOGLE_CLOUD_CREDS` or `GOOGLE_APPLICATION_CREDENTIALS` environment variable to be set.
 
