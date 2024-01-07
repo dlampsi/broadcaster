@@ -20,7 +20,7 @@ type Service struct {
 	logger     *zap.SugaredLogger
 	notifiers  map[string]Notifier
 	lastRun    *time.Time // Timestamp of the last run in UTC
-	state      *State
+	state      *state
 }
 
 type Option func(*Service)
@@ -64,7 +64,6 @@ func New(opts ...Option) (*Service, error) {
 	s := &Service{
 		cfg:       &cfg,
 		logger:    zap.NewNop().Sugar(),
-		state:     NewState(),
 		notifiers: map[string]Notifier{},
 	}
 
@@ -105,6 +104,9 @@ func New(opts ...Option) (*Service, error) {
 		s.logger.Debug("Loading Slack notifier")
 		s.notifiers["slack"] = NewSlackNotifier(cfg.SlackApiToken, s.logger)
 	}
+
+	s.state = newState(s.logger)
+
 	return s, nil
 }
 
@@ -160,7 +162,7 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 	for _, item := range parsed.Items[:limit] {
 		ilogger := s.logger.With("id", item.GUID, "link", item.Link, "src", feed.GetId())
 
-		if pt := s.state.GetPubTime(feed, item); pt != nil {
+		if pt := s.state.getPubTime(feed, item); pt != nil {
 			ilogger.Debug("Feed item already in state, skipping")
 			if !pt.Equal(*item.PublishedParsed) {
 				ilogger.Debug("Item has been updated since publication")
@@ -185,7 +187,7 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 				Link:        item.Link,
 				Source:      feed.Source,
 			})
-			s.state.Set(feed, item)
+			s.state.set(feed, item)
 			ilogger.Info("Item has no translations, added as is")
 			continue
 		}
@@ -210,7 +212,7 @@ func (s *Service) processFeed(ctx context.Context, feed structs.FeedConfig) erro
 			items = append(items, resp)
 		}
 
-		s.state.Set(feed, item)
+		s.state.set(feed, item)
 	}
 
 	var wg sync.WaitGroup
@@ -280,4 +282,17 @@ func (s *Service) notify(ctx context.Context, cfg structs.FeedNotifyConfig, item
 	}
 
 	return notifier.Notify(ctx, request)
+}
+
+func (s *Service) CleanupState(ctx context.Context) error {
+	s.logger.Debug("Cleaning up state")
+	deleted, err := s.state.cleanup(ctx, time.Duration(s.cfg.StateTTL)*time.Second)
+	if err != nil {
+		return err
+	}
+	if deleted > 0 {
+		s.logger.Infof("State was cleared from '%d' items", deleted)
+	}
+	s.logger.Debug("State cleanup is done")
+	return nil
 }
