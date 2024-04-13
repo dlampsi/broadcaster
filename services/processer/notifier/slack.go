@@ -1,13 +1,13 @@
-package service
+package notifier
 
 import (
+	"broadcaster/structs"
 	"context"
+	"fmt"
 
 	"github.com/slack-go/slack"
 	"go.uber.org/zap"
 )
-
-var _ Notifier = (*SlackNotifier)(nil)
 
 type SlackNotifier struct {
 	cl     *slack.Client
@@ -17,10 +17,13 @@ type SlackNotifier struct {
 func NewSlackNotifier(token string, logger *zap.SugaredLogger) *SlackNotifier {
 	s := &SlackNotifier{
 		cl:     slack.New(token),
-		logger: logger.Named("slack"),
+		logger: logger,
 	}
 	return s
 }
+
+// Implement the Notifier interface
+var _ Notifier = (*SlackNotifier)(nil)
 
 func (s *SlackNotifier) Notify(ctx context.Context, r NotificationRequest) error {
 	for _, to := range r.To {
@@ -40,4 +43,17 @@ func (s *SlackNotifier) notify(ctx context.Context, channel, username, msg strin
 	}
 	_, _, err := s.cl.PostMessage(channel, opts...)
 	return err
+}
+
+func (s *SlackNotifier) NewRequest(fn structs.RssFeedNotification, item *structs.RssFeedItem) NotificationRequest {
+	return NotificationRequest{
+		To:     fn.To,
+		Source: item.Source,
+		Message: fmt.Sprintf(
+			"<%s|%s>\n\n%s",
+			item.Link,
+			item.Title,
+			item.Description,
+		),
+	}
 }

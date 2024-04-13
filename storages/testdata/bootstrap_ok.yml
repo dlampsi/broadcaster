@@ -2,6 +2,6 @@ feeds:
   - source: Helsingin Sanomat
     category: City
     url: https://www.hs.fi/rss/kaupunki.xml
-    translates:
-      - from: fi
-        to: en
+    language: fi
+    translations:
+      - to: en

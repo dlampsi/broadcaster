@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"broadcaster/cmd/config"
 	"broadcaster/controllers/restapi"
-	"broadcaster/service"
+	"broadcaster/services/housekeeper"
+	"broadcaster/services/processer"
+	"broadcaster/storages/memory"
 	"broadcaster/utils/info"
 	"broadcaster/utils/logging"
 	"context"
@@ -19,46 +20,41 @@ import (
 	"go.uber.org/zap"
 )
 
+func init() {
+	rootCmd.AddCommand(serverCmd)
+}
+
 type serverConfig struct {
 	Env           string         `envconfig:"ENV" default:"local"`
 	LogLevel      string         `envconfig:"LOG_LEVEL" default:"info"`
 	LogFormat     logging.Format `envconfig:"LOG_FORMAT" default:"json"`
-	ConfigPath    string         `envconfig:"CONFIG_PATH"`
+	BootstrapFile string         `envconfig:"BOOTSTRAP_FILE"`
 	CheckInterval int            `envconfig:"CHECK_INTERVAL" default:"300"`
-}
-
-func loadServerConfig() (*serverConfig, error) {
-	_ = godotenv.Load() // Try to read .env file first
-
-	var cfg serverConfig
-	if err := envconfig.Process(info.EnvPrefix, &cfg); err != nil {
-		return nil, fmt.Errorf("Can't load environment variables: %w", err)
-	}
-
-	// Set color logs for the local development
-	if cfg.Env == "local" && cfg.LogFormat != "pretty" {
-		cfg.LogFormat = "pretty_color"
-	}
-
-	return &cfg, nil
-}
-
-func init() {
-	rootCmd.AddCommand(serverCmd)
 }
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Runs the server",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := loadServerConfig()
-		if err != nil {
-			fmt.Printf("Failed to load configuration: %s\n", err.Error())
+		_ = godotenv.Load() // Try to read .env file first
+
+		/* Load configuration */
+
+		var cfg serverConfig
+		if err := envconfig.Process(info.EnvPrefix, &cfg); err != nil {
+			fmt.Printf("Can't load env: %s\n", err.Error())
 			os.Exit(1)
 		}
+		// Set color logs for the local development
+		if cfg.Env == "local" && cfg.LogFormat != "pretty" {
+			cfg.LogFormat = "pretty_color"
+		}
 
-		logger := logging.NewLogger(cfg.LogLevel, cfg.LogFormat)
+		/* Logger */
+
+		logger := logging.NewLogger("debug", logging.FormatPrettyColor)
 		logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel))
+
 		// Adding env fields for non-local environments
 		if cfg.Env != "local" {
 			logger = logger.With(
@@ -69,7 +65,8 @@ var serverCmd = &cobra.Command{
 			)
 		}
 
-		// Root context
+		/* Root context */
+
 		ctx, cancel := context.WithCancel(context.Background())
 		ctx = logging.ContextWithLogger(ctx, logger)
 		defer cancel()
@@ -84,7 +81,6 @@ var serverCmd = &cobra.Command{
 			case <-ctx.Done():
 			}
 		}()
-
 		defer func() {
 			if r := recover(); r != nil {
 				logger.Fatalw("Application panic", "panic", r)
@@ -94,40 +90,57 @@ var serverCmd = &cobra.Command{
 		logger.Infof("Starting %s (%s)", info.AppName, info.Release)
 		defer logger.Info("App is stopped")
 
-		// Loading feeds configuration
-		logger.Debugf("Loading feeds confguration from '%s'", cfg.ConfigPath)
+		/* Storage */
 
-		cdata, err := config.Load(ctx, cfg.ConfigPath)
-		if err != nil {
-			logger.Fatal("Failed to load config file: ", err.Error())
+		st := memory.NewStorage(
+			memory.WithLogger(logger.Named("storage")),
+		)
+
+		logger.Debugf("Bootstraping from config file: '%s'", cfg.BootstrapFile)
+
+		if err := st.BootstrapFromConfigFile(ctx, cfg.BootstrapFile); err != nil {
+			logger.Fatalf("Bootstrap failed: %s", err.Error())
 		}
-		logger.Debugf("Loaded '%d' feeds configurations", len(cdata.Feeds))
 
-		// Service
-		svc, err := service.New(
-			service.WithFeeds(cdata.Feeds...),
-			service.WithLogger(logger),
+		/* Services */
+
+		pcr, err := processer.NewService(
+			st,
+			processer.WithLogger(logger.Named("processer")),
 		)
 		if err != nil {
-			logger.Fatal("Failed to load translator service: ", err.Error())
+			logger.Fatalf("Can't create processer service: %v", err.Error())
 		}
 
-		if err := svc.Process(ctx); err != nil {
+		hkr, err := housekeeper.NewService(
+			st,
+			housekeeper.WithLogger(logger.Named("housekeeper")),
+		)
+		if err != nil {
+			logger.Fatalf("Can't create housekeeper service: %w", err)
+		}
+
+		/* Starting service */
+
+		// Processing data for the first time and start regular processing
+		if err := pcr.Process(ctx); err != nil {
 			logger.Error("Failed to process data: ", err.Error())
 		}
-
-		// Starting service
 		go func() {
-			interval := time.Duration(cfg.CheckInterval) * time.Second
+			interval := time.Duration(10) * time.Second
 			ticker := time.NewTicker(interval)
 			for {
 				select {
 				case <-ticker.C:
-					if err := svc.Process(ctx); err != nil {
+					if err := pcr.Process(ctx); err != nil {
 						logger.Error("Failed to process data: ", err.Error())
 					}
-					if err := svc.CleanupState(ctx); err != nil {
-						logger.Error("Failed to cleanup state: ", err.Error())
+
+					// TODO: Make TTL configurable
+					ttl := time.Duration(24) * time.Hour
+
+					if err := hkr.CleanupFeedItems(ctx, ttl); err != nil {
+						logger.Error("Failed to cleanup feed items: ", err.Error())
 					}
 				case <-ctx.Done():
 					logger.Info("Stopping application")
@@ -138,10 +151,10 @@ var serverCmd = &cobra.Command{
 		}()
 
 		api, err := restapi.New(
-			restapi.WithLogger(logger),
+			restapi.WithLogger(logger.Named("restapi")),
 		)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Fatalf("Can't create restapi: %w", err)
 		}
 
 		err = api.Serve(ctx)
