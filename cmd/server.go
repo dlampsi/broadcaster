@@ -29,6 +29,7 @@ type serverConfig struct {
 	LogLevel      string         `envconfig:"LOG_LEVEL" default:"info"`
 	LogFormat     logging.Format `envconfig:"LOG_FORMAT" default:"json"`
 	BootstrapFile string         `envconfig:"BOOTSTRAP_FILE"`
+	StateTTL      int            `envconfig:"STATE_TTL" default:"86400"`
 	CheckInterval int            `envconfig:"CHECK_INTERVAL" default:"300"`
 }
 
@@ -127,7 +128,7 @@ var serverCmd = &cobra.Command{
 			logger.Error("Failed to process data: ", err.Error())
 		}
 		go func() {
-			interval := time.Duration(10) * time.Second
+			interval := time.Duration(cfg.CheckInterval) * time.Second
 			ticker := time.NewTicker(interval)
 			for {
 				select {
@@ -136,8 +137,7 @@ var serverCmd = &cobra.Command{
 						logger.Error("Failed to process data: ", err.Error())
 					}
 
-					// TODO: Make TTL configurable
-					ttl := time.Duration(24) * time.Hour
+					ttl := time.Duration(cfg.StateTTL) * time.Second
 
 					if err := hkr.CleanupFeedItems(ctx, ttl); err != nil {
 						logger.Error("Failed to cleanup feed items: ", err.Error())
