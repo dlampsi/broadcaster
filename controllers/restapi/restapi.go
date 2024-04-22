@@ -39,8 +39,6 @@ func New(opts ...Option) (*Service, error) {
 		opt(s)
 	}
 
-	s.logger = s.logger.Named("restapi")
-
 	return s, nil
 }
 

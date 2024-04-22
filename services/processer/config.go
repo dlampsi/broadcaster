@@ -1,4 +1,4 @@
-package service
+package processer
 
 import "errors"
 
@@ -14,12 +14,9 @@ type Config struct {
 	GoogleCloudProjectId string          `envconfig:"GOOGLE_CLOUD_PROJECT_ID"`
 	TelegramBotToken     string          `envconfig:"TELEGRAM_BOT_TOKEN"`
 	SlackApiToken        string          `envconfig:"SLACK_API_TOKEN"`
-	// How many hours back to process
-	BackfillHours int `envconfig:"BACKFILL_HOURS"`
-	// Do not send notifications
-	MuteNotifications bool   `envconfig:"MUTE_NOTIFICATIONS"`
-	GoogleCloudCreds  string `envconfig:"GOOGLE_CLOUD_CREDS"`
-	StateTTL          int    `envconfig:"STATE_TTL" default:"86400"`
+	BackfillHours        int             `envconfig:"BACKFILL_HOURS"`
+	MuteNotifications    bool            `envconfig:"MUTE_NOTIFICATIONS"`
+	GoogleCloudCreds     string          `envconfig:"GOOGLE_CLOUD_CREDS"`
 }
 
 func (c *Config) Validate() error {

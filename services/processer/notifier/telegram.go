@@ -1,16 +1,15 @@
-package service
+package notifier
 
 import (
+	"broadcaster/structs"
 	"context"
 	"fmt"
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/microcosm-cc/bluemonday"
 	"go.uber.org/zap"
 )
-
-// Implement the Notifier interface
-var _ Notifier = (*TelegramNotifier)(nil)
 
 type TelegramNotifier struct {
 	bot    *tgbotapi.BotAPI
@@ -19,7 +18,7 @@ type TelegramNotifier struct {
 
 func NewTelegramNotifier(botToken string, logger *zap.SugaredLogger) (*TelegramNotifier, error) {
 	t := &TelegramNotifier{
-		logger: logger.Named("telegram"),
+		logger: logger,
 	}
 
 	tgbot, err := tgbotapi.NewBotAPI(botToken)
@@ -27,9 +26,13 @@ func NewTelegramNotifier(botToken string, logger *zap.SugaredLogger) (*TelegramN
 		return nil, fmt.Errorf("Failed to init a telegram client: %w", err)
 	}
 	t.bot = tgbot
+	t.logger.Debug("Bot client initialized")
 
 	return t, nil
 }
+
+// Implement the Notifier interface
+var _ Notifier = (*TelegramNotifier)(nil)
 
 func (t *TelegramNotifier) Notify(ctx context.Context, r NotificationRequest) error {
 	for _, to := range r.To {
@@ -53,4 +56,23 @@ func (t *TelegramNotifier) notify(ctx context.Context, chatId int64, message str
 		return err
 	}
 	return nil
+}
+
+func (t *TelegramNotifier) NewRequest(fn structs.RssFeedNotification, item *structs.RssFeedItem) NotificationRequest {
+
+	if len(item.Description) > 0 {
+		p := bluemonday.StrictPolicy()
+		item.Description = p.Sanitize(item.Description)
+	}
+
+	return NotificationRequest{
+		To: fn.To,
+		Message: fmt.Sprintf(
+			"*%s* \n\n%s\n\n[%s](%s)",
+			item.Title,
+			item.Description,
+			item.Source,
+			item.Link,
+		),
+	}
 }

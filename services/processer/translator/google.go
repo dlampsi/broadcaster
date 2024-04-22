@@ -1,7 +1,6 @@
-package service
+package translator
 
 import (
-	"broadcaster/structs"
 	"context"
 	"fmt"
 
@@ -28,7 +27,7 @@ func NewGoogleCloudTranslator(cfg *GoogleCloudTranslatorConfig) *GoogleCloudTran
 	}
 }
 
-func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error) {
+func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequest) (*TranlsationResponce, error) {
 	var clOpts []googleOption.ClientOption
 
 	if len(t.cfg.CredsJson) > 0 {
@@ -59,7 +58,7 @@ func (t *GoogleCloudTranslator) Translate(ctx context.Context, r TranlsationRequ
 		result = append(result, t.GetTranslatedText())
 	}
 
-	item := &structs.FeedItem{
+	item := &TranlsationResponce{
 		Title:       result[0],
 		Description: result[1],
 		Link: fmt.Sprintf(

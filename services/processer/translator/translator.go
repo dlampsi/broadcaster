@@ -1,12 +1,11 @@
-package service
+package translator
 
 import (
-	"broadcaster/structs"
 	"context"
 )
 
 type Translator interface {
-	Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error)
+	Translate(ctx context.Context, r TranlsationRequest) (*TranlsationResponce, error)
 }
 
 type TranlsationRequest struct {
@@ -14,4 +13,10 @@ type TranlsationRequest struct {
 	From string   // Language code of the original article
 	To   string   // Language code to translate to
 	Text []string // Text to translate
+}
+
+type TranlsationResponce struct {
+	Title       string
+	Description string
+	Link        string
 }

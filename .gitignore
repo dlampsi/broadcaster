@@ -23,5 +23,9 @@ bin
 # Local .env file
 .env
 
-/config*.yml
+/*.yml
+/*.yaml
+!docker-compose.yml
+!docker-compose.yaml
+
 /*.json

@@ -1,7 +1,6 @@
-package service
+package translator
 
 import (
-	"broadcaster/structs"
 	"context"
 )
 
@@ -15,8 +14,8 @@ func NewMockTranslator() *MockTranslator {
 	return &MockTranslator{}
 }
 
-func (t *MockTranslator) Translate(ctx context.Context, r TranlsationRequest) (*structs.FeedItem, error) {
-	return &structs.FeedItem{
+func (t *MockTranslator) Translate(ctx context.Context, r TranlsationRequest) (*TranlsationResponce, error) {
+	return &TranlsationResponce{
 		Title:       r.Text[0],
 		Description: r.Text[1],
 		Link:        r.Link,
