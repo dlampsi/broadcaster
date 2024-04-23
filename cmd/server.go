@@ -53,7 +53,7 @@ var serverCmd = &cobra.Command{
 
 		/* Logger */
 
-		logger := logging.NewLogger("debug", logging.FormatPrettyColor)
+		logger := logging.NewLogger(cfg.LogLevel, cfg.LogFormat)
 		logger.WithOptions(zap.AddStacktrace(zap.ErrorLevel))
 
 		// Adding env fields for non-local environments
