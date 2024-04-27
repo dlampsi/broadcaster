@@ -27,7 +27,7 @@ func init() {
 type serverConfig struct {
 	Env           string         `envconfig:"ENV" default:"local"`
 	LogLevel      string         `envconfig:"LOG_LEVEL" default:"info"`
-	LogFormat     logging.Format `envconfig:"LOG_FORMAT" default:"json"`
+	LogFormat     logging.Format `envconfig:"LOG_FORMAT" default:"pretty_color"`
 	BootstrapFile string         `envconfig:"BOOTSTRAP_FILE"`
 	StateTTL      int            `envconfig:"STATE_TTL" default:"86400"`
 	CheckInterval int            `envconfig:"CHECK_INTERVAL" default:"300"`
@@ -45,10 +45,6 @@ var serverCmd = &cobra.Command{
 		if err := envconfig.Process(info.EnvPrefix, &cfg); err != nil {
 			fmt.Printf("Can't load env: %s\n", err.Error())
 			os.Exit(1)
-		}
-		// Set color logs for the local development
-		if cfg.Env == "local" && cfg.LogFormat != "pretty" {
-			cfg.LogFormat = "pretty_color"
 		}
 
 		/* Logger */

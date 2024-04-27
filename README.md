@@ -24,7 +24,7 @@ Available environment variables for service run type:
 | ---- | ----------- | ------------- |
 | `BCTR_ENV` | Environment name / id. | `local` |
 | `BCTR_LOG_LEVEL` | Logging level. | `info` |
-| `BCTR_LOG_FORMAT` | Logging format. Options: `json`, `pretty`, `pretty_color` | `json` |
+| `BCTR_LOG_FORMAT` | Logging format. Options: `json`, `pretty`, `pretty_color`, `do_app` | `pretty_color` |
 | `BCTR_BOOTSTRAP_FILE` | Bootstrap config file path in uri format.<br>Example: `file:///path/to/config.yml` | |
 | `BCTR_TRANSLATOR_TYPE` | Translation service type. * | `google_cloud` |
 | `BCTR_GOOGLE_CLOUD_PROJECT_ID` | Google Cloud Project ID. | |
