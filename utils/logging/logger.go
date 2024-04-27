@@ -15,9 +15,10 @@ type contextKey string
 type Format string
 
 const (
-	FormatJSON        Format = "json"
-	FormatPretty      Format = "pretty"
-	FormatPrettyColor Format = "pretty_color"
+	FormatJSON            Format = "json"
+	FormatPretty          Format = "pretty"
+	FormatPrettyColor     Format = "pretty_color"
+	FormatDigitaloceanApp Format = "do_app"
 
 	// loggerKey points to the value in the context where the logger is stored.
 	loggerKey = contextKey("logger")
@@ -65,6 +66,26 @@ func NewLogger(level string, format Format) *zap.SugaredLogger {
 				LevelKey:       levelKey,
 				EncodeLevel:    zapcore.CapitalLevelEncoder,
 				TimeKey:        timeKey,
+				EncodeTime:     zapcore.ISO8601TimeEncoder,
+				EncodeDuration: zapcore.SecondsDurationEncoder,
+				EncodeCaller:   zapcore.ShortCallerEncoder,
+				LineEnding:     zapcore.DefaultLineEnding,
+			},
+			OutputPaths:      []string{"stdout"},
+			ErrorOutputPaths: []string{"stderr"},
+		}
+	case FormatDigitaloceanApp:
+		config = &zap.Config{
+			Level:       zap.NewAtomicLevelAt(toZapLevel(level)),
+			Development: false,
+			Encoding:    "console",
+			EncoderConfig: zapcore.EncoderConfig{
+				NameKey:        nameKey,
+				MessageKey:     messageKey,
+				StacktraceKey:  stacktraceKey,
+				LevelKey:       levelKey,
+				EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+				TimeKey:        zapcore.OmitKey,
 				EncodeTime:     zapcore.ISO8601TimeEncoder,
 				EncodeDuration: zapcore.SecondsDurationEncoder,
 				EncodeCaller:   zapcore.ShortCallerEncoder,
