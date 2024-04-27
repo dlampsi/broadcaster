@@ -41,7 +41,7 @@ func (s *Service) CleanupFeedItems(ctx context.Context, ttl time.Duration) error
 	if err != nil {
 		return err
 	}
-	s.logger.Infof("Found %d feed items", len(items))
+	s.logger.Debugf("Found %d feed items", len(items))
 
 	deadline := time.Now().UTC().Add(-ttl)
 	s.logger.Debugf("Deadline: %v (-%v)", deadline, ttl)
