@@ -165,14 +165,17 @@ func (s *Service) processFeed(ctx context.Context, feed structs.RssFeed) error {
 
 	logger.Debug("Parsing feed")
 
-	if feed.ItemsLimit == 0 {
-		feed.ItemsLimit = 10
-	}
-
 	fp := gofeed.NewParser()
 	parsed, err := fp.ParseURLWithContext(feed.URL, ctx)
 	if err != nil {
 		return fmt.Errorf("Failed to parse feed: %w", err)
+	}
+
+	if feed.ItemsLimit == 0 {
+		feed.ItemsLimit = 10
+	}
+	if feed.ItemsLimit > len(parsed.Items) {
+		feed.ItemsLimit = len(parsed.Items)
 	}
 
 	var pitems []*structs.RssFeedItem
