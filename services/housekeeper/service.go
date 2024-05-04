@@ -49,7 +49,7 @@ func (s *Service) CleanupFeedItems(ctx context.Context, ttl time.Duration) error
 	var deleted int
 
 	for _, item := range items {
-		ilogger := s.logger.With("guid", item.Id, "saved", item.Processed, "feed_id", item.FeedId)
+		ilogger := s.logger.With("item_id", item.Id, "saved", item.Processed, "feed_id", item.FeedId)
 		if !item.Processed.Before(deadline) {
 			ilogger.Debug("Skipping item cleanup")
 			continue

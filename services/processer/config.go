@@ -26,7 +26,7 @@ func (c *Config) Validate() error {
 	if c.TranslatorType == TranslationTypeGC && c.GoogleCloudProjectId == "" {
 		return errors.New("Google Cloud Project ID is required")
 	}
-	if c.TelegramBotToken == "" {
+	if !c.MuteNotifications && c.TelegramBotToken == "" {
 		return errors.New("Telegram Bot Token is required")
 	}
 	return nil

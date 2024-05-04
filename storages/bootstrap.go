@@ -26,18 +26,19 @@ type FeedConfig struct {
 	Language      string                    `yaml:"language"`
 	ItemsLimit    int                       `yaml:"items_limit"`
 	Disabled      bool                      `yaml:"disabled"`
-	Translations  []FeedTranslationsConfig  `yaml:"translations"`
 	Notifications []FeedNotificationsConfig `yaml:"notifications"`
 }
 
-type FeedTranslationsConfig struct {
-	To string `yaml:"to"`
+type FeedNotificationsConfig struct {
+	Type      string                 `yaml:"type"`
+	To        []string               `yaml:"to"`
+	Muted     bool                   `yaml:"muted"`
+	Translate FeedTranslationsConfig `yaml:"translate"`
 }
 
-type FeedNotificationsConfig struct {
-	Type  string   `yaml:"type"`
-	To    []string `yaml:"to"`
-	Muted bool     `yaml:"muted"`
+type FeedTranslationsConfig struct {
+	From string `yaml:"from"`
+	To   string `yaml:"to"`
 }
 
 func (c FeedConfig) ToRssFeed() structs.RssFeed {
@@ -55,18 +56,17 @@ func (c FeedConfig) ToRssFeed() structs.RssFeed {
 		ItemsLimit: c.ItemsLimit,
 	}
 
-	for _, t := range c.Translations {
-		result.Translations = append(result.Translations, structs.RssFeedTranslation{
-			To: t.To,
-		})
-	}
-
 	for _, n := range c.Notifications {
-		result.Notifications = append(result.Notifications, structs.RssFeedNotification{
+		rn := structs.RssFeedNotification{
 			Type:  n.Type,
 			To:    n.To,
 			Muted: n.Muted,
-		})
+			Translate: structs.RssFeedTranslation{
+				From: coalesce(n.Translate.From, c.Language),
+				To:   n.Translate.To,
+			},
+		}
+		result.Notifications = append(result.Notifications, rn)
 	}
 
 	return result
@@ -168,4 +168,15 @@ func loadFileByUri(ctx context.Context, uri string, logger *zap.SugaredLogger) (
 	default:
 		return nil, errors.New("Unknown config file URL scheme")
 	}
+}
+
+// Returns the first non-empty string from the given list of strings.
+// If all strings are empty, returns an empty string.
+func coalesce(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

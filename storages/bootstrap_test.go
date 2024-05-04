@@ -44,8 +44,62 @@ func Test_GetFeedsFromConfig(t *testing.T) {
 		require.Equal(t, "https://www.hs.fi/rss/kaupunki.xml", feed.URL)
 		require.Equal(t, "fi", feed.Language)
 
-		require.Len(t, feed.Translations, 1)
-		ts := feed.Translations[0]
-		require.Equal(t, "en", ts.To)
+		require.Len(t, feed.Notifications, 1)
+		notification := feed.Notifications[0]
+		require.NotEmpty(t, "en", notification.Type)
+		require.NotEmpty(t, "en", notification.To)
+		require.False(t, notification.Muted)
+		require.Equal(t, "en", notification.Translate.To)
 	})
+}
+
+func Test_FeedConfig_ToRssFeed(t *testing.T) {
+	cfg := FeedConfig{
+		Source:     "Dummy Feed",
+		Category:   "Test",
+		URL:        "https://example.com/rss.xml",
+		Language:   "en",
+		ItemsLimit: 10,
+		Notifications: []FeedNotificationsConfig{
+			{
+				Type:  "email",
+				To:    []string{"fake@email"},
+				Muted: false,
+				Translate: FeedTranslationsConfig{
+					To: "fi",
+				},
+			},
+			{
+				Type:  "email",
+				To:    []string{"fake2@email"},
+				Muted: false,
+				Translate: FeedTranslationsConfig{
+					From: "eng",
+					To:   "fi",
+				},
+			},
+		},
+	}
+	feed := cfg.ToRssFeed()
+
+	require.Equal(t, "DummyFeed.Test", feed.Id)
+	require.Equal(t, cfg.Source, feed.Source)
+	require.Equal(t, cfg.Category, feed.Category)
+	require.Equal(t, cfg.URL, feed.URL)
+	require.Equal(t, cfg.Language, feed.Language)
+	require.Equal(t, cfg.ItemsLimit, feed.ItemsLimit)
+
+	require.Equal(t, len(cfg.Notifications), len(feed.Notifications))
+	require.Equal(t, cfg.Notifications[0].Type, feed.Notifications[0].Type)
+	require.Equal(t, cfg.Notifications[0].To, feed.Notifications[0].To)
+	require.Equal(t, cfg.Notifications[0].Muted, feed.Notifications[0].Muted)
+	require.Equal(t, cfg.Notifications[0].Translate.To, feed.Notifications[0].Translate.To)
+	require.Equal(t, cfg.Language, feed.Notifications[0].Translate.From)
+	require.Equal(t, cfg.Notifications[1].Translate.From, feed.Notifications[1].Translate.From)
+}
+
+func Test_coalesce(t *testing.T) {
+	require.Equal(t, "", coalesce())
+	require.Equal(t, "", coalesce("", ""))
+	require.Equal(t, "two", coalesce("", "two", "three"))
 }
