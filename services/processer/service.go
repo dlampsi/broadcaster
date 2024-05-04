@@ -27,8 +27,11 @@ type Service struct {
 	storage    Storage
 	translator translator.Translator
 	notifiers  map[string]notifier.Notifier
-
-	lastRun *time.Time // Timestamp of the last run in UTC
+	mu         *sync.RWMutex
+	// In-memory cache for translated items. item_uid -> language -> item
+	translations map[string]map[string]structs.RssFeedItem
+	// Timestamp of the last run in UTC
+	lastRun *time.Time
 }
 
 type Option func(*Service)
@@ -66,10 +69,12 @@ func NewService(storage Storage, opts ...Option) (*Service, error) {
 	}
 
 	svc := &Service{
-		cfg:       &cfg,
-		logger:    zap.NewNop().Sugar(),
-		storage:   storage,
-		notifiers: make(map[string]notifier.Notifier),
+		cfg:          &cfg,
+		logger:       zap.NewNop().Sugar(),
+		storage:      storage,
+		notifiers:    make(map[string]notifier.Notifier),
+		mu:           &sync.RWMutex{},
+		translations: make(map[string]map[string]structs.RssFeedItem),
 	}
 
 	for _, opt := range opts {
@@ -96,7 +101,7 @@ func NewService(storage Storage, opts ...Option) (*Service, error) {
 		return nil, fmt.Errorf("Unsupported translator type '%s'", svc.cfg.TranslatorType)
 	}
 
-	if cfg.TelegramBotToken != "" {
+	if cfg.TelegramBotToken != "" && !cfg.MuteNotifications {
 		svc.logger.Debug("Loading Telegram notifier")
 		tn, err := notifier.NewTelegramNotifier(
 			cfg.TelegramBotToken,
@@ -119,6 +124,9 @@ func NewService(storage Storage, opts ...Option) (*Service, error) {
 	return svc, nil
 }
 
+/*
+For each feed
+*/
 func (s *Service) Process(ctx context.Context) error {
 	s.logger.Debug("Starting feeds processing")
 	defer s.logger.Debug("Feeds processing is done")
@@ -142,15 +150,30 @@ func (s *Service) Process(ctx context.Context) error {
 		s.logger.Warn("Notifications are muted")
 	}
 
+	s.logger.Debug("Clearing translations cache; Current size: ", len(s.translations))
+	s.mu.Lock()
+	s.translations = make(map[string]map[string]structs.RssFeedItem)
+	s.mu.Unlock()
+
 	feeds, err := s.storage.Feeds().List(ctx)
 	if err != nil {
 		return fmt.Errorf("Failed to load feeds: %w", err)
 	}
-	for _, feed := range feeds {
-		if err := s.processFeed(ctx, feed); err != nil {
-			s.logger.With("feed_id", feed.Id).Errorw("Failed to process feed", "err", err.Error())
-		}
+	s.logger.Debugf("Loaded '%d' feeds from storage", len(feeds))
+
+	var wg sync.WaitGroup
+	wg.Add(len(feeds))
+
+	for _, f := range feeds {
+		go func(feed structs.RssFeed) {
+			defer wg.Done()
+			if err := s.processFeed(ctx, feed); err != nil {
+				s.logger.With("feed_id", feed.Id).Errorw("Failed to process feed", "err", err.Error())
+			}
+		}(f)
 	}
+
+	wg.Wait()
 
 	return nil
 }
@@ -163,146 +186,245 @@ func (s *Service) processFeed(ctx context.Context, feed structs.RssFeed) error {
 		return nil
 	}
 
-	logger.Debug("Parsing feed")
-
-	fp := gofeed.NewParser()
-	parsed, err := fp.ParseURLWithContext(feed.URL, ctx)
+	items, err := s.parseRssFeed(ctx, feed, 120*time.Second)
 	if err != nil {
 		return fmt.Errorf("Failed to parse feed: %w", err)
 	}
+	logger.Debug("Parsed feed items: ", len(items))
 
-	if feed.ItemsLimit == 0 {
-		feed.ItemsLimit = 10
-	}
-	if feed.ItemsLimit > len(parsed.Items) {
-		feed.ItemsLimit = len(parsed.Items)
-	}
+	items = s.filterItems(ctx, feed, items...)
+	logger.Debug("Feed items after filtering: ", len(items))
 
-	var pitems []*structs.RssFeedItem
-
-	for _, pi := range parsed.Items[:feed.ItemsLimit] {
-		if i, err := s.processFeedItem(ctx, feed, pi); err != nil {
-			logger.With("guid", pi.GUID).Errorw("Failed to process feed item", "err", err.Error())
-		} else if i != nil {
-			pitems = append(pitems, i)
-		}
-	}
+	s.translateItems(ctx, feed, items...)
 
 	var wg sync.WaitGroup
-
-	for _, nc := range feed.Notifications {
-		if nc.Muted {
-			logger.Debugf("Notification is muted for: '%s'", nc.Type)
-			continue
-		}
-
-		nf, nfExists := s.notifiers[nc.Type]
-		if !nfExists {
-			logger.Warnf(
-				"Notifier '%s' isn't configured. You may not have specified a notification token env.",
-				nc.Type,
-			)
-			continue
-		}
-
-		wg.Add(1)
-
-		go func(fn structs.RssFeedNotification, nf notifier.Notifier) {
-			defer wg.Done()
-			for _, fi := range pitems {
-				notifyRequest := nf.NewRequest(fn, fi)
-				if err := nf.Notify(ctx, notifyRequest); err != nil {
-					logger.With("err", err.Error()).Errorf("Failed to notify with '%s'", fn.Type)
-				}
-			}
-		}(nc, nf)
+	wg.Add(len(feed.Notifications))
+	for _, nn := range feed.Notifications {
+		go s.notifyFeed(ctx, &wg, feed, nn, items...)
 	}
-
 	wg.Wait()
+
+	s.storeItems(ctx, feed, items...)
 
 	return nil
 }
 
-func (s *Service) processFeedItem(ctx context.Context, feed structs.RssFeed, item *gofeed.Item) (*structs.RssFeedItem, error) {
-	logger := s.logger.With("feed_id", feed.Id, "guid", item.GUID, "link", item.Link)
+// Parses the RSS feed and returns a list of converted items.
+func (s *Service) parseRssFeed(ctx context.Context, feed structs.RssFeed, timeout time.Duration) ([]structs.RssFeedItem, error) {
+	logger := s.logger.With("feed_id", feed.Id)
 
-	logger.Debug("Searching for item in storage")
+	var items []structs.RssFeedItem
 
-	findReq := storages.FeedItemsStorageFindRequest{
-		Id: item.GUID,
-	}
-	fi, err := s.storage.FeedItems().Find(ctx, findReq)
-	if err != nil && err != storages.ItemNotFoundError {
-		return nil, fmt.Errorf("Failed to find feed item in storage: %w", err)
-	}
-	if fi != nil {
-		logger.Debug("Feed item already in state, skipping")
-		return nil, nil
-	}
+	logger.Debug("Parsing feed")
 
-	if s.lastRun != nil && item.PublishedParsed.Before(*s.lastRun) {
-		logger.Debug("Skipping feed item published before the last run")
-		return nil, nil
+	feedParser := gofeed.NewParser()
+
+	pCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	parsedFeed, err := feedParser.ParseURLWithContext(feed.URL, pCtx)
+	if err != nil {
+		return nil, err
 	}
 
-	/*
-		Adding a raw feed data if no translations are required
-		otherwise add translated data for each language
-	*/
-
-	processed := &structs.RssFeedItem{
-		Id:          item.GUID,
-		Source:      feed.Source,
-		Categories:  item.Categories,
-		Title:       item.Title,
-		Description: item.Description,
-		Link:        item.Link,
-		Language:    feed.Language,
-		PubDate:     *item.PublishedParsed,
+	limit := feed.ItemsLimit
+	if limit == 0 {
+		limit = 10
+	}
+	if limit > len(parsedFeed.Items) {
+		limit = len(parsedFeed.Items)
 	}
 
-	for _, translate := range feed.Translations {
-		tlogger := logger.With("translate", feed.Language+"."+translate.To)
+	logger.Debugf("Parsed %d items; Limit: %d", len(parsedFeed.Items), limit)
 
-		tlogger.Debug("Translating feed item")
+	for _, item := range parsedFeed.Items[:limit] {
+		items = append(items, structs.RssFeedItem{
+			Id:          item.GUID,
+			FeedId:      feed.Id,
+			Source:      feed.Source,
+			Categories:  item.Categories,
+			Title:       item.Title,
+			Description: item.Description,
+			Link:        item.Link,
+			Language:    feed.Language,
+			PubDate:     *item.PublishedParsed,
+		})
+	}
 
-		translateReq := translator.TranlsationRequest{
-			Link: item.Link,
-			From: feed.Language,
-			To:   translate.To,
-			Text: []string{item.Title, item.Description},
+	return items, nil
+}
+
+// Translates feed items and stores the translations in the cache.
+func (s *Service) translateItems(ctx context.Context, feed structs.RssFeed, items ...structs.RssFeedItem) {
+	logger := s.logger.With("feed_id", feed.Id)
+
+	for _, lang := range feed.GetTranslatonsLang() {
+		for _, item := range items {
+			ilogger := logger.With("item_id", item.Id)
+
+			if item.Language == lang {
+				ilogger.Debug("Item is already in desired language")
+				continue
+			}
+
+			if ti := s.getTranslation(item.Id, lang); ti != nil {
+				ilogger.Debug("Item translation found in cache")
+				continue
+			}
+
+			if err := s.translateItem(ctx, &item, feed.Language, lang); err != nil {
+				ilogger.Errorw("Failed to translate item", "err", err.Error())
+				continue
+			}
+
+			s.saveTranslation(item, lang)
 		}
-		tresp, err := s.translator.Translate(ctx, translateReq)
-		if err != nil {
-			tlogger.Errorw("Failed to translate item text", "err", err.Error())
+	}
+}
+
+func (s *Service) translateItem(ctx context.Context, item *structs.RssFeedItem, from, to string) error {
+	logger := s.logger.With("item_id", item.Id, "translate", from+"->"+to)
+
+	logger.Debug("Translating item")
+
+	req := translator.TranlsationRequest{
+		Link: item.Link,
+		From: from,
+		To:   to,
+		Text: []string{item.Title, item.Description},
+	}
+	resp, err := s.translator.Translate(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	item.Title = resp.Title
+	item.Description = resp.Description
+	item.Link = resp.Link
+
+	return nil
+}
+
+// Checks if the items are not processed yet and whether they pub data is newer than the last run.
+func (s *Service) filterItems(ctx context.Context, feed structs.RssFeed, items ...structs.RssFeedItem) []structs.RssFeedItem {
+	logger := s.logger.With("feed_id", feed.Id)
+
+	var filtered []structs.RssFeedItem
+
+	for _, item := range items {
+		ilogger := logger.With("item_id", item.Id)
+
+		findReq := storages.FeedItemsStorageFindRequest{
+			Id: item.Id,
+		}
+		fi, err := s.storage.FeedItems().Find(ctx, findReq)
+		if err != nil && err != storages.ItemNotFoundError {
+			ilogger.With("err", err.Error()).Error("Failed to find feed item in storage")
+		}
+		if fi != nil {
+			ilogger.Debug("Item already in state, skipping")
 			continue
 		}
 
-		processed.Title = tresp.Title
-		processed.Description = tresp.Description
-		processed.Link = tresp.Link
+		if s.lastRun != nil && item.PubDate.Before(*s.lastRun) {
+			ilogger.Debug("Skipping item published before the last run")
+			continue
+		}
+
+		filtered = append(filtered, item)
 	}
 
-	logger.Debug("Saving feed item to storage")
+	return filtered
+}
 
-	createReq := storages.FeedItemsCreateRequest{
-		Id:          processed.Id,
-		FeedId:      feed.Id,
-		Source:      processed.Source,
-		Categories:  processed.Categories,
-		Title:       processed.Title,
-		Description: processed.Description,
-		PubDate:     processed.PubDate,
-		Processed:   time.Now().UTC(),
-		Link:        processed.Link,
-		Language:    processed.Language,
-	}
-	rec, err := s.storage.FeedItems().Create(ctx, createReq)
-	if err != nil {
-		return processed, fmt.Errorf("Failed to save feed item: %w", err)
+func (s *Service) notifyFeed(ctx context.Context, wg *sync.WaitGroup, feed structs.RssFeed, nfn structs.RssFeedNotification, items ...structs.RssFeedItem) {
+	defer wg.Done()
+
+	logger := s.logger.With("feed_id", feed.Id, "notify_type", nfn.Type)
+
+	if nfn.Muted {
+		logger.Debugf("Notification is muted for: '%s'", nfn.Type)
+		return
 	}
 
-	logger.Info("Feed item has been processed")
+	nfr, exists := s.notifiers[nfn.Type]
+	if !exists {
+		logger.Warnf(
+			"Notifier '%s' isn't configured. You may not have specified a notification token env.",
+			nfn.Type,
+		)
+		return
+	}
 
-	return rec, nil
+	for _, item := range items {
+		ilogger := logger.With("item_id", item.Id)
+
+		if nfn.Translate.To != "" && nfn.Translate.To != item.Language {
+			tItem := s.getTranslation(item.Id, nfn.Translate.To)
+			if tItem != nil {
+				ilogger.Debug("Item translation found in cache")
+				item = *tItem
+			} else {
+				logger.Warn("Item translation not found in cache. Translating on the fly...")
+
+				if err := s.translateItem(ctx, &item, item.Language, nfn.Translate.To); err != nil {
+					ilogger.With("err", err.Error()).Errorf("Failed to translate item on the fly")
+				}
+			}
+		}
+
+		ilogger.Info("Sending notification")
+
+		req := nfr.NewRequest(nfn, &item)
+		if err := nfr.Notify(ctx, req); err != nil {
+			logger.With("item_id", item.Id, "err", err.Error()).
+				Errorf("Failed to notify with '%s'", nfn.Type)
+		}
+	}
+}
+
+func (s *Service) storeItems(ctx context.Context, feed structs.RssFeed, items ...structs.RssFeedItem) {
+	logger := s.logger.With("feed_id", feed.Id)
+	for _, item := range items {
+		ilogger := logger.With("item_id", item.Id)
+
+		ilogger.Debug("Storing item in storage")
+
+		req := storages.FeedItemsCreateRequest{
+			Id:          item.Id,
+			FeedId:      feed.Id,
+			Source:      item.Source,
+			Categories:  item.Categories,
+			Title:       item.Title,
+			Description: item.Description,
+			PubDate:     item.PubDate,
+			Processed:   time.Now().UTC(),
+			Link:        item.Link,
+			Language:    item.Language,
+		}
+		if _, err := s.storage.FeedItems().Create(ctx, req); err != nil {
+			ilogger.With("err", err.Error()).Error("Failed to save item to storage")
+		}
+	}
+}
+
+func (s *Service) saveTranslation(item structs.RssFeedItem, lang string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := s.translations[item.Id]; !exists {
+		s.translations[item.Id] = make(map[string]structs.RssFeedItem)
+	}
+	s.translations[item.Id][lang] = item
+}
+
+func (s *Service) getTranslation(itemId string, lang string) *structs.RssFeedItem {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if _, ok := s.translations[itemId]; ok {
+		if item, ok := s.translations[itemId][lang]; ok {
+			return &item
+		}
+	}
+	return nil
 }

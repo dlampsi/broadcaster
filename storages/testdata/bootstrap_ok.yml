@@ -3,5 +3,8 @@ feeds:
     category: City
     url: https://www.hs.fi/rss/kaupunki.xml
     language: fi
-    translations:
-      - to: en
+    notifications:
+      - type: telegram
+        to: ["-123"]
+        translate:
+          to: en

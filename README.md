@@ -61,13 +61,13 @@ feeds:
     category: Latest
     url: https://dummyfeed.com/rss
     language: fi
-    translations:
-      - to: en
     notifications:
       - type: slack
         to: ["#general"]
       - type: telegram
         to: ["-1234567890","-1234567891"]
+        translate:
+          to: en
 ```
 
 ## Notifiers
