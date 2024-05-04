@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 }
 
 func testMainWrapper(m *testing.M) int {
-	tlogger := logging.NewLogger("fatal", logging.FormatPretty)
+	tlogger := logging.NewLogger("debug", logging.FormatPretty)
 
 	tstorage := memory.NewStorage(memory.WithLogger(tlogger))
 
@@ -139,9 +139,9 @@ func Test_Service_translateItems(t *testing.T) {
 	// 	"Only requested languages translates items should be stored in the cache",
 	// )
 
-	require.Nil(t, tservice.getTranslation("translationError", "en"), "Item should not be stored in the cache on error")
-	require.Nil(t, tservice.getTranslation("sameLanguage", "en"), "Item should not be stored in the cache on error")
-	require.NotNil(t, tservice.getTranslation("validTranslation", "en"), "Item should be stored in the cache on error")
+	require.Nil(t, tservice.getTranslation("translationError", "fr"), "Item should not be stored in the cache on error")
+	require.Nil(t, tservice.getTranslation("sameLanguage", "fr"), "Item should not be stored in the cache on error")
+	require.NotNil(t, tservice.getTranslation("validTranslation", "fr"), "Translated item should be stored in the cache")
 }
 
 func Test_Service_translateItem(t *testing.T) {
