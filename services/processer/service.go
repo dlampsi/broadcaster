@@ -97,6 +97,8 @@ func NewService(storage Storage, opts ...Option) (*Service, error) {
 			cfg.CredsJson = []byte(svc.cfg.GoogleCloudCreds)
 		}
 		svc.translator = translator.NewGoogleCloudTranslator(cfg)
+	case "google_api":
+		svc.translator = translator.NewGoogleApiTranslator()
 	default:
 		return nil, fmt.Errorf("Unsupported translator type '%s'", svc.cfg.TranslatorType)
 	}

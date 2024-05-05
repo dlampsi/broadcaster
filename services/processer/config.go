@@ -7,10 +7,11 @@ type TranslationType string
 const (
 	TranslationTypeMock TranslationType = "mock"
 	TranslationTypeGC   TranslationType = "google_cloud"
+	TranlsationTypeGAPI TranslationType = "google_api"
 )
 
 type Config struct {
-	TranslatorType       TranslationType `envconfig:"TRANSLATOR_TYPE" default:"google_cloud"`
+	TranslatorType       TranslationType `envconfig:"TRANSLATOR_TYPE" default:"google_api"`
 	GoogleCloudProjectId string          `envconfig:"GOOGLE_CLOUD_PROJECT_ID"`
 	TelegramBotToken     string          `envconfig:"TELEGRAM_BOT_TOKEN"`
 	SlackApiToken        string          `envconfig:"SLACK_API_TOKEN"`
@@ -20,7 +21,7 @@ type Config struct {
 }
 
 func (c *Config) Validate() error {
-	if c.TranslatorType != TranslationTypeMock && c.TranslatorType != TranslationTypeGC {
+	if c.TranslatorType != TranslationTypeMock && c.TranslatorType != TranslationTypeGC && c.TranslatorType != TranlsationTypeGAPI {
 		return errors.New("invalid translator type")
 	}
 	if c.TranslatorType == TranslationTypeGC && c.GoogleCloudProjectId == "" {
