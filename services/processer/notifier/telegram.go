@@ -59,20 +59,25 @@ func (t *TelegramNotifier) notify(ctx context.Context, chatId int64, message str
 }
 
 func (t *TelegramNotifier) NewRequest(fn structs.RssFeedNotification, item *structs.RssFeedItem) NotificationRequest {
+	var message string
 
 	if len(item.Description) > 0 {
 		p := bluemonday.StrictPolicy()
 		item.Description = p.Sanitize(item.Description)
+
+		message = fmt.Sprintf(
+			"*%s* \n\n%s\n\n[%s](%s)",
+			item.Title, item.Description, item.Source, item.Link,
+		)
+	} else {
+		message = fmt.Sprintf(
+			"*%s* \n\n[%s](%s)",
+			item.Title, item.Source, item.Link,
+		)
 	}
 
 	return NotificationRequest{
-		To: fn.To,
-		Message: fmt.Sprintf(
-			"*%s* \n\n%s\n\n[%s](%s)",
-			item.Title,
-			item.Description,
-			item.Source,
-			item.Link,
-		),
+		To:      fn.To,
+		Message: message,
 	}
 }
