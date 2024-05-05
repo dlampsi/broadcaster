@@ -19,13 +19,8 @@ $ broadcaster server
 
 Broadcaster supports the following translation services:
 
-### Google Translate API
-
-Free to use. No additional settings are required. Used by default.
-
-### Google Cloud Translate
-
-You will need to create (or already have) a Google Cloud account and a Project to use the Translatoin API. Google Cloud has a free tier for the translation service.
+- **Google Translate API** (default) - Free to use. No additional settings are required.
+- **Google Cloud Translate** - You will need to create (or already have) a Google Cloud account and a Project to use the Translatoin API. Google Cloud has a free tier for the translation service.
 
 <!-- ------------------------------------------------------------------------------------------ -->
 ## Notifications
