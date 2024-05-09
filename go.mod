@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
 	github.com/dlampsi/gsrv v0.1.1
-	github.com/gin-contrib/pprof v1.4.0
+	github.com/gin-contrib/pprof v1.5.0
 	github.com/gin-contrib/zap v1.1.3
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
@@ -92,13 +92,13 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.7.0 // indirect
+	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240429193739-8cf5692501f6 // indirect
