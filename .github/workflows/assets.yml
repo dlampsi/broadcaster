@@ -38,7 +38,7 @@ jobs:
           make build BINARY=broadcaster-${{ steps.env.outputs.tag }}-$GOOS-$GOARCH
 
       - name: Upload Release Assets
-        if: github.event_name == 'release'
+        if: github.event.release.tag_name != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
