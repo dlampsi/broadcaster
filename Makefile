@@ -6,11 +6,10 @@ GREEN :=\033[0;32m
 
 APP       := broadcaster
 BINARY    ?= $(APP)
-# BINARY    ?= $(APP)-$(RELEASE)_$(GOARCH)_$(GOOS)
 RELEASE   ?= $(shell git rev-parse --short HEAD)
 COMMIT    := $(shell git rev-parse HEAD)
 DATE      ?= $(shell date '+%Y-%m-%d_%H:%M:%S')
-BUILD_NUM ?= 
+BUILD_NUM ?=
 
 BIN_DIR   := bin
 TESTS_DIR := tests
