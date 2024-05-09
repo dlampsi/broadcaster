@@ -1,15 +1,11 @@
-name: Release
-
+name: Assets
 on:
   release:
-    types: [created]
-
+    types: [published]
   pull_request:
-    branches:
-      - main
-
+    branches: [main]
 jobs:
-  assets:
+  build:
     strategy:
       matrix:
         GOOS: [linux, darwin]
@@ -27,7 +23,8 @@ jobs:
         with:
           go-version: '1.21'
 
-      - id: env
+      - name: Setup environment
+        id: env
         run: |
           if [[ "${{ github.event.release.tag_name }}" == "" ]]; then
             tag=$(git rev-parse --short HEAD)
@@ -38,10 +35,9 @@ jobs:
 
       - name: Build binaries
         run: |
-
           make build BINARY=broadcaster-${{ steps.env.outputs.tag }}-$GOOS-$GOARCH
 
-      - name: Upload Release Asset
+      - name: Upload Release Assets
         if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
