@@ -56,7 +56,7 @@ func Test_Service_parseRssFeed(t *testing.T) {
 			Id:       "validRss",
 			Source:   "ForTesting",
 			Category: "Dummy",
-			URL:      "https://www.hs.fi/rss/kaupunki.xml",
+			URL:      "https://www.hs.fi/rss/helsinki.xml",
 			Language: "fi",
 		}
 		items, err := tservice.parseRssFeed(ctx, feed, 10*time.Second)
@@ -77,7 +77,7 @@ func Test_Service_parseRssFeed(t *testing.T) {
 			Id:         "withItemsLimits",
 			Source:     "ForTesting",
 			Category:   "Dummy",
-			URL:        "https://www.hs.fi/rss/kaupunki.xml",
+			URL:        "https://www.hs.fi/rss/helsinki.xml",
 			ItemsLimit: 1,
 		}
 		items, err := tservice.parseRssFeed(ctx, feed, 10*time.Second)
