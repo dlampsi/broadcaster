@@ -12,7 +12,7 @@ require (
 	github.com/dlampsi/gsrv v0.1.1
 	github.com/gin-contrib/pprof v1.5.0
 	github.com/gin-contrib/zap v1.1.3
-	github.com/gin-gonic/gin v1.9.1
+	github.com/gin-gonic/gin v1.10.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
